@@ -67,7 +67,7 @@
 				<span
 					class="mt-0.5 text-[12px] text-muted-app leading-none font-normal"
 				>
-					พบ ปัญหาติดต่อ Bornzi
+					พบปัญหาติดต่อที่ Discord Support Server
 				</span>
 			</div>
 			<!-- Brand suffix only shows from md up — keeps the row from
@@ -84,7 +84,7 @@
 					title="Discord Support Server"
 				>
 					<Discord class="h-3.5 w-3.5 text-[#5865F2]" />
-					<span>Discord Server</span>
+					<span>Support Server</span>
 				</button>
 			{/if}
 
@@ -185,7 +185,7 @@
 						class="inline-flex h-10 w-full items-center gap-2 rounded-md px-3 text-left font-mono text-xs text-secondary-app transition-colors duration-200 hover:bg-elevated hover:text-[#5865F2]"
 					>
 						<Discord class="h-4 w-4 text-[#5865F2]" />
-						<span>Discord Server</span>
+						<span>Support Server</span>
 					</button>
 				{/if}
 
