@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Check, Copy, ExternalLink, X } from "@lucide/svelte";
-	import QRCode from "qrcode";
 	import Discord from "$lib/components/icons/Discord.svelte";
+	import { createQrSvg } from "$lib/utils/qrcodegen";
 
 	let {
 		open = false,
@@ -13,34 +13,9 @@
 		onclose: () => void;
 	} = $props();
 
-	let qrDataUrl = $state<string>("");
-	let generating = $state<boolean>(false);
+	let qrSvg = $derived(link ? createQrSvg(link, 2) : "");
 	let copied = $state<boolean>(false);
 	let copyTimeout: ReturnType<typeof setTimeout> | null = null;
-
-	$effect(() => {
-		if (open && link) {
-			generating = true;
-			QRCode.toDataURL(link, {
-				width: 300,
-				margin: 2,
-				color: {
-					dark: "#18181b",
-					light: "#ffffff",
-				},
-				errorCorrectionLevel: "M",
-			})
-				.then((url) => {
-					qrDataUrl = url;
-				})
-				.catch((err) => {
-					console.error("Failed to generate QR code:", err);
-				})
-				.finally(() => {
-					generating = false;
-				});
-		}
-	});
 
 	async function copyLink(): Promise<void> {
 		if (!link) return;
@@ -115,20 +90,9 @@
 				<div
 					class="flex h-52 w-52 items-center justify-center overflow-hidden rounded-xl border border-strong-app bg-white p-2.5 shadow-sm"
 				>
-					{#if qrDataUrl && !generating}
-						<img
-							src={qrDataUrl}
-							alt="QR Code สำหรับเข้าร่วม Discord Support Server"
-							class="h-full w-full object-contain"
-						/>
-					{:else}
-						<div
-							class="flex h-full w-full items-center justify-center"
-						>
-							<div
-								class="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent"
-							></div>
-						</div>
+					{#if qrSvg}
+						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+						{@html qrSvg}
 					{/if}
 				</div>
 				<p class="mt-2.5 text-center text-xs text-muted-app">
