@@ -17,6 +17,7 @@ interface ServerEnv {
 	defaultQuotaPages: number;
 	gracePeriodMs: number;
 	missingJobAgeMs: number;
+	discordLink: string;
 }
 
 function readEnv(): ServerEnv {
@@ -27,6 +28,7 @@ function readEnv(): ServerEnv {
 	const defaultQuotaPages = env.PRIVATE_DEFAULT_QUOTA_PAGES;
 	const gracePeriodRaw = env.PRIVATE_GRACE_PERIOD_MS;
 	const missingJobAgeRaw = env.PRIVATE_MISSING_JOB_AGE_MS;
+	const discordLinkRaw = env.DISCORD_LINK || process.env.DISCORD_LINK || 'https://discord.gg/y8RdYEStQk';
 
 	if (!pocketbaseUrl) {
 		throw new Error('Missing PRIVATE_POCKETBASE_URL environment variable.');
@@ -62,7 +64,8 @@ function readEnv(): ServerEnv {
 		missingJobAgeMs:
 			missingJobAgeRaw && Number.isFinite(Number(missingJobAgeRaw))
 				? Math.max(0, Math.floor(Number(missingJobAgeRaw)))
-				: 8000
+				: 8000,
+		discordLink: discordLinkRaw.replace(/^["']|["']$/g, '').trim()
 	};
 }
 

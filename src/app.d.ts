@@ -27,6 +27,7 @@ declare global {
         }
         interface PageData {
             user?: App.Locals['user'];
+            discordLink?: string;
         }
         // interface PageState {}
         // interface Platform {}

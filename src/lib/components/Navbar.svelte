@@ -10,7 +10,15 @@
 		X,
 	} from "@lucide/svelte";
 
+	import Discord from "$lib/components/icons/Discord.svelte";
+	import DiscordModal from "$lib/components/DiscordModal.svelte";
+
 	let user = $derived(page.data.user);
+	let discordLink = $derived(
+		page.data.discordLink || "https://discord.gg/y8RdYEStQk"
+	);
+	let discordModalOpen = $state(false);
+
 	const isSuperAdmin = $derived(user?.role === "superadmin");
 	const isTeacher = $derived(user?.role === "teachers");
 	const canPrintTeacher = $derived(isTeacher || isSuperAdmin);
@@ -22,7 +30,7 @@
 					{ href: "/user/teacher", label: "พิมพ์ (อาจารย์)", icon: Printer },
 			  ]
 			: user
-			? [{ href: "/user", label: "พิมพ์", icon: Upload }]
+			? [{ href: "/user", label: "พิมพ์ (ทั่วไป)", icon: Upload }]
 			: []),
 		...(isSuperAdmin
 			? [{ href: "/admin", label: "แผงควบคุม", icon: ShieldCheck }]
@@ -64,10 +72,22 @@
 			</div>
 			<!-- Brand suffix only shows from md up — keeps the row from
 			     getting crowded on phones where every pixel counts. -->
-		</a>_
+		</a>
 
 		<!-- Desktop nav — hidden below lg where the hamburger takes over. -->
 		<nav class="hidden items-center gap-1 lg:flex">
+			{#if user}
+				<button
+					type="button"
+					onclick={() => (discordModalOpen = true)}
+					class="inline-flex h-8 items-center gap-1.5 rounded-md px-3 font-mono text-xs text-secondary-app transition-colors duration-200 hover:bg-elevated hover:text-[#5865F2]"
+					title="Discord Support Server"
+				>
+					<Discord class="h-3.5 w-3.5 text-[#5865F2]" />
+					<span>Discord Server</span>
+				</button>
+			{/if}
+
 			{#each links as link (link.href)}
 				{@const active = link.exact ? page.url.pathname === link.href : page.url.pathname.startsWith(link.href)}
 				<a
@@ -155,6 +175,20 @@
 			<nav
 				class="mx-auto flex max-w-[1400px] flex-col gap-1 px-4 py-3 sm:px-6"
 			>
+				{#if user}
+					<button
+						type="button"
+						onclick={() => {
+							mobileOpen = false;
+							discordModalOpen = true;
+						}}
+						class="inline-flex h-10 w-full items-center gap-2 rounded-md px-3 text-left font-mono text-xs text-secondary-app transition-colors duration-200 hover:bg-elevated hover:text-[#5865F2]"
+					>
+						<Discord class="h-4 w-4 text-[#5865F2]" />
+						<span>Discord Server</span>
+					</button>
+				{/if}
+
 				{#each links as link (link.href)}
 					{@const active = link.exact ? page.url.pathname === link.href : page.url.pathname.startsWith(link.href)}
 					<a
@@ -184,6 +218,12 @@
 		</div>
 	{/if}
 </header>
+
+<DiscordModal
+	open={discordModalOpen}
+	link={discordLink}
+	onclose={() => (discordModalOpen = false)}
+/>
 
 <svelte:window
 	onpointerdown={(e) => {
