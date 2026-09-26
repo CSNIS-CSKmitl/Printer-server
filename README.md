@@ -40,3 +40,9 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+
+## ประกาศกลาง
+
+จัดการประกาศในโปรเจกต์ ../Announcements ด้วยสิทธิ์ admin หรือ superadmin ใช้ PocketBase เดียวกัน เลือกปลายทาง all หรือ printer เพื่อแสดงในเว็บนี้ ผู้เข้าชมเห็นป๊อปอัปโดยไม่ต้องล็อกอิน และเห็นใหม่ทุกครั้งที่เปิดหรือรีโหลดเว็บ ปิดแล้วไม่เด้งซ้ำในการเปิดครั้งนั้น ยกเว้นมีประกาศใหม่หรือแก้ไข ตรวจเมื่อเปิดหน้า ทุก 30 วินาทีเมื่อแท็บมองเห็น และเมื่อกลับมาเปิดแท็บ เปิดอ่านซ้ำได้จากปุ่ม “ประกาศ”
+
+/api/announcements ส่งเฉพาะประกาศ published ที่อยู่ในช่วงเวลาและเลือกเว็บนี้ ข้อความเป็น plain text ลิงก์เฉพาะ HTTP/HTTPS ไม่มี localStorage สำหรับการรับทราบ หากยังไม่มี collection หรือโหลดครั้งแรกไม่ได้ จะใช้ประกาศน้ำท่วมสำรองใน src/lib/flood-announcement.ts (enabled: false ปิดสำรองได้) ถ้าเคยโหลดสำเร็จจะใช้ผลรอบล่าสุดระหว่างการเชื่อมต่อขัดข้อง

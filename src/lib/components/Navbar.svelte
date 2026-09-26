@@ -8,11 +8,13 @@
 		LogIn,
 		Menu,
 		X,
+		Megaphone,
 	} from "@lucide/svelte";
 
 	import Discord from "$lib/components/icons/Discord.svelte";
 	import DiscordModal from "$lib/components/DiscordModal.svelte";
 
+	let { onAnnouncement }: { onAnnouncement: () => void } = $props();
 	let user = $derived(page.data.user);
 	let discordLink = $derived(
 		page.data.discordLink || "https://discord.gg/y8RdYEStQk"
@@ -74,6 +76,16 @@
 			     getting crowded on phones where every pixel counts. -->
 		</a>
 
+			<button
+				type="button"
+				class="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg border border-app bg-surface px-2 text-sm text-secondary-app transition-colors hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent sm:px-3"
+				aria-label="เปิดประกาศ"
+				aria-haspopup="dialog"
+				onclick={onAnnouncement}
+			>
+				<Megaphone aria-hidden="true" class="size-4 shrink-0" />
+				<span class="hidden sm:inline">ประกาศ</span>
+			</button>
 		<!-- Desktop nav — hidden below lg where the hamburger takes over. -->
 		<nav class="hidden items-center gap-1 lg:flex">
 			{#if user}
