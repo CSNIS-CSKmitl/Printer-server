@@ -11,9 +11,14 @@
 
 <svelte:head><title>Print Server</title></svelte:head>
 
-<Navbar onAnnouncement={() => (announcementOpen = true)} />
-<AnnouncementCenter userId={data.user?.id ?? null} bind:open={announcementOpen} />
+<div class="flex min-h-screen flex-col bg-app text-fg-app">
+	<Navbar onAnnouncement={() => (announcementOpen = true)} />
+	<AnnouncementCenter userId={data.user?.id ?? null} bind:open={announcementOpen} />
 
-<main class="min-h-[calc(100dvh-3.5rem)] bg-app text-fg-app transition-colors duration-300">
-	{@render children()}
-</main>
+	<main class="flex-1 transition-colors duration-300">
+		{@render children()}
+	</main>
+	<footer class="border-t border-strong-app px-4 py-6 text-center text-xs text-muted-app">
+		<span>© {new Date().getFullYear()} <a href="https://github.com/techasit5415" target="_blank" rel="noopener noreferrer" class="hover:text-fg-app hover:underline">Techasit Vanitpattarakul</a></span>
+	</footer>
+</div>
