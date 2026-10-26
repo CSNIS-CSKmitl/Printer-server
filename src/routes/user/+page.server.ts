@@ -16,9 +16,8 @@ import { refundQuota } from '$lib/server/functions/quota/refundQuota';
 import { clearSession } from '$lib/server/functions/session/clearSession';
 import { serverEnv } from '$lib/server/env';
 import type { PageServerLoad } from './$types';
-
-// ─── Tunables ────────────────────────────────────────────────────────────────
-const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50 MiB hard cap (per the new UI copy)
+import { env } from '$env/dynamic/private';
+import { getUploadLimit } from '$lib/upload-limit';
 
 /**
  * Type guard for PocketBase SDK errors. `ClientResponseError` carries
@@ -93,7 +92,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		return { ...j, queueAhead, etaMinutes };
 	});
 
-	return { quota, jobs };
+	return { quota, jobs, maxUploadBytes: getUploadLimit(env.BODY_SIZE_LIMIT) };
 };
 
 /**
@@ -111,8 +110,9 @@ export const actions: Actions = {
 		if (!(file instanceof File) || file.size === 0) {
 			return { ok: false, message: 'กรุณาเลือกไฟล์ที่ต้องการพิมพ์' };
 		}
-		if (file.size > MAX_FILE_BYTES) {
-			return { ok: false, message: `ไฟล์มีขนาดเกิน ${MAX_FILE_BYTES / 1024 / 1024} MiB` };
+		const maxUploadBytes = getUploadLimit(env.BODY_SIZE_LIMIT);
+		if (maxUploadBytes !== null && file.size >= maxUploadBytes) {
+			return { ok: false, message: `ขนาดคำขอรวมต้องไม่เกิน ${maxUploadBytes / 1024 / 1024} MiB กรุณาเลือกไฟล์ที่เล็กลง` };
 		}
 
 		const ext = path.extname(file.name).toLowerCase();

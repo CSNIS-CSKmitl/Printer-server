@@ -11,9 +11,7 @@ const config = {
     },
 
     kit: {
-        adapter: adapter({
-            bodySizeLimit: 104857600 // 100MB
-        })
+        adapter: adapter()
     }
 };
 

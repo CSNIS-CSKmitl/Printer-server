@@ -13,6 +13,13 @@
 		X,
 	} from "@lucide/svelte";
 	import Button from "$lib/components/Button.svelte";
+	import AlertBanner from "$lib/components/AlertBanner.svelte";
+
+	let { maxUploadBytes }: { maxUploadBytes: number | null } = $props();
+	let uploadError = $state("");
+	const sizeError = $derived(maxUploadBytes === null
+		? "ขนาดไฟล์เกินขีดจำกัดของเซิร์ฟเวอร์ กรุณาเลือกไฟล์ที่เล็กลง"
+		: `ขนาดคำขอรวมต้องไม่เกิน ${fileSize(maxUploadBytes)} รวมข้อมูลการพิมพ์ กรุณาเลือกไฟล์ที่เล็กลง`);
 
 	let submitting = $state(false);
 	let uploadProgress = $state(0);
@@ -35,12 +42,18 @@
 	// Human-readable file size.
 	function fileSize(bytes: number): string {
 		if (bytes < 1024) return `${bytes} B`;
-		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-		return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+		return `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
 	}
 
 	function stageFile(file: File): void {
 		if (!uploadFileEl) return;
+		if (maxUploadBytes !== null && file.size >= maxUploadBytes) {
+			clearStaged();
+			uploadError = sizeError;
+			return;
+		}
+		uploadError = "";
 		const dt = new DataTransfer();
 		dt.items.add(file);
 		uploadFileEl.files = dt.files;
@@ -52,6 +65,7 @@
 
 	function clearStaged(): void {
 		selectedFile = null;
+		uploadError = "";
 		if (uploadFileEl) uploadFileEl.files = null;
 	}
 
@@ -123,7 +137,7 @@
 						status: xhr.status,
 						data: {
 							ok: false,
-							message: `เกิดข้อผิดพลาดในการส่งไฟล์ (${xhr.status})`,
+							message: xhr.status === 413 ? sizeError : `เกิดข้อผิดพลาดในการส่งไฟล์ (${xhr.status})`,
 						},
 					} as any;
 					await applyAction(result);
@@ -167,6 +181,11 @@
 </script>
 
 <section class="mb-8">
+	{#if uploadError}
+		<div class="mb-4">
+			<AlertBanner variant="error" message={uploadError} />
+		</div>
+	{/if}
 	<form
 		bind:this={uploadFormEl}
 		method="POST"
@@ -213,7 +232,10 @@
 					คลิกหรือลากไฟล์มาวางที่นี่เพื่อพิมพ์
 				</p>
 				<p class="mt-1 text-xs text-muted-app">
-					รองรับ PDF / PS / JPG / PNG / TXT (สูงสุด 50MB)
+					รองรับ PDF / PS / JPG / PNG / TXT
+					{#if maxUploadBytes !== null}
+						(ขนาดคำขอรวมสูงสุด {fileSize(maxUploadBytes)} รวมข้อมูลการพิมพ์)
+					{/if}
 				</p>
 			</label>
 		{:else}

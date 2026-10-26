@@ -112,7 +112,7 @@
 		</div>
 	</section>
 
-	<StagedPrintForm />
+	<StagedPrintForm maxUploadBytes={data.maxUploadBytes} />
 
 	<UserJobsTable jobs={data.jobs} />
 </div>
