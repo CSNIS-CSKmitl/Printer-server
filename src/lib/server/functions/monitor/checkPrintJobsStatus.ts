@@ -6,6 +6,7 @@ import { inactiveTimestamps, missingJobTimestamps } from './timestamps';
 import { updateJobStatus } from './updateJobStatus';
 import { GRACE_PERIOD_MS } from './constants';
 import { getPrintedPages } from './getPrintedPages';
+import { checkCupsErrorLog, parsePrinterError } from './printerErrors';
 
 const execAsync = promisify(exec);
 
@@ -71,25 +72,57 @@ export async function checkPrintJobsStatus(): Promise<void> {
 			} else {
 				// The job is no longer in the active queue (meaning it has completed or failed)
 				const matchingBlock = allBlocks.find((block) => block.trim().startsWith(jobIdentifier));
-				if (matchingBlock) {
-					const blockLower = matchingBlock.toLowerCase();
+				const blockText = matchingBlock ?? '';
+				const blockLower = blockText.toLowerCase();
 
+				// 1. Check if printer reported an explicit error/fault (such as 017-734: IPP Data Error)
+				let errorInfo = parsePrinterError(blockText);
+				if (!errorInfo.isError) {
+					// Check CUPS error_log for this job as fallback
+					const errLogMsg = await checkCupsErrorLog(job.cups_job_id);
+					if (errLogMsg) {
+						errorInfo = { isError: true, isIppDataError: /017-?734/i.test(errLogMsg), message: errLogMsg };
+					}
+				}
+
+				if (errorInfo.isError && errorInfo.message) {
+					inactiveTimestamps.delete(job.id);
+					missingJobTimestamps.delete(job.id);
+					console.log(
+						`[Monitor] Job ${job.id} (CUPS #${job.cups_job_id}) failed with error: "${errorInfo.message}". Auto-refunding all ${job.pages} pages.`
+					);
+					await updateJobStatus(
+						pb,
+						job,
+						'failed',
+						errorInfo.message,
+						job.pages,
+						0
+					);
+					continue;
+				}
+
+				if (matchingBlock) {
 					if (blockLower.includes('cancel')) {
 						inactiveTimestamps.delete(job.id);
 						// เครื่องปริ้นยกเลิกงาน ตรวจสอบหน้าจริงที่พิมพ์ออกมาเพื่อหักเฉพาะส่วนนั้นและคืนที่เหลือ
 						const { printed, isLogEnabled } = await getPrintedPages(job.cups_job_id);
 						if (isLogEnabled) {
-							const toRefund = Math.max(0, job.pages - printed);
+							// If printed >= job.pages but the job was canceled at the printer,
+							// page_log only recorded spooled pages before the printer canceled.
+							// Auto-refund all pages.
+							const toRefund = printed >= job.pages ? job.pages : Math.max(0, job.pages - printed);
+							const actualPages = printed >= job.pages ? 0 : printed;
 							await updateJobStatus(
 								pb,
 								job,
 								'failed',
-								`Canceled at printer / Out of paper (Printed ${printed}/${job.pages} pages)`,
+								`Canceled at printer / Out of paper (Printed ${actualPages}/${job.pages} pages)`,
 								toRefund,
-								printed
+								actualPages
 							);
 						} else {
-							await updateJobStatus(pb, job, 'failed', 'Canceled at printer / Out of paper', job.pages);
+							await updateJobStatus(pb, job, 'failed', 'Canceled at printer / Out of paper', job.pages, 0);
 						}
 					} else if (
 						blockLower.includes('fail') ||
@@ -99,17 +132,18 @@ export async function checkPrintJobsStatus(): Promise<void> {
 						inactiveTimestamps.delete(job.id);
 						const { printed, isLogEnabled } = await getPrintedPages(job.cups_job_id);
 						if (isLogEnabled) {
-							const toRefund = Math.max(0, job.pages - printed);
+							const toRefund = printed >= job.pages ? job.pages : Math.max(0, job.pages - printed);
+							const actualPages = printed >= job.pages ? 0 : printed;
 							await updateJobStatus(
 								pb,
 								job,
 								'failed',
-								`Failed at printer (Printed ${printed}/${job.pages} pages)`,
+								`Failed at printer (Printed ${actualPages}/${job.pages} pages)`,
 								toRefund,
-								printed
+								actualPages
 							);
 						} else {
-							await updateJobStatus(pb, job, 'failed', 'Failed at printer', job.pages);
+							await updateJobStatus(pb, job, 'failed', 'Failed at printer', job.pages, 0);
 						}
 					} else {
 						// เช็คประวัติการพิมพ์จริงทันทีก่อนใช้ Grace Period
@@ -164,6 +198,13 @@ export async function checkPrintJobsStatus(): Promise<void> {
 						if (elapsed > GRACE_PERIOD_MS) {
 							missingJobTimestamps.delete(job.id);
 							console.log(`[Monitor] Job ${job.id} (CUPS #${job.cups_job_id}) has been missing from lpstat for ${Math.round(elapsed / 1000)}s. Verifying via page_log...`);
+							
+							const errLogMsg = await checkCupsErrorLog(job.cups_job_id);
+							if (errLogMsg) {
+								await updateJobStatus(pb, job, 'failed', errLogMsg, job.pages, 0);
+								continue;
+							}
+
 							const { printed, isLogEnabled } = await getPrintedPages(job.cups_job_id);
 							if (isLogEnabled) {
 								const toRefund = Math.max(0, job.pages - printed);
@@ -177,7 +218,7 @@ export async function checkPrintJobsStatus(): Promise<void> {
 										printed
 									);
 								} else {
-									await updateJobStatus(pb, job, 'failed', 'Job disappeared from CUPS without printing pages');
+									await updateJobStatus(pb, job, 'failed', 'Job disappeared from CUPS without printing pages', job.pages, 0);
 								}
 							} else {
 								// Fallback if log is disabled
