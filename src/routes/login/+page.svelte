@@ -92,7 +92,7 @@
 
 		<div class="my-6 flex items-center gap-3 text-muted-app">
 			<div class="h-px flex-1 bg-strong-app"></div>
-			<span class="text-xs">หรือ เข้าสู่ระบบด้วยรหัสผ่าน (ผู้ดูแลระบบ)</span>
+			<span class="text-xs">หรือ เข้าสู่ระบบด้วยรหัสผ่าน</span>
 			<div class="h-px flex-1 bg-strong-app"></div>
 		</div>
 
@@ -145,9 +145,5 @@
 				Sign in with password
 			</Button>
 		</form>
-
-		<p class="text-center text-xs text-muted-app">
-			ต้องการความช่วยเหลือ? ติดต่อ Bornzi 
-		</p>
 	</div>
 </div>
