@@ -1,6 +1,4 @@
-// User-related types.
-
-export type UserRole = 'super_admin' | 'superadmin' | 'admin' | 'user' | 'teachers' | 'head';
+import type { UserRole } from './role';
 
 export interface SessionUser {
 	id: string;
@@ -11,4 +9,13 @@ export interface SessionUser {
 	roles?: string[];
 	isAdmin?: boolean;
 	isUnlimited?: boolean;
+}
+
+export interface UsersRecord {
+	id: string;
+	email: string;
+	name?: string;
+	username?: string;
+	user_type?: string | string[];
+	roles?: string[];
 }

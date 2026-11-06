@@ -1,6 +1,7 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
 import type PocketBase from 'pocketbase';
+import type { UserRole } from '$lib/types/role';
 
 declare global {
     namespace App {
@@ -12,7 +13,7 @@ declare global {
                 email: string;
                 name?: string;
                 username?: string;
-                role: 'admin' | 'user' | 'super_admin' | 'superadmin' | 'teachers' | 'head';
+                role: UserRole;
                 roles?: string[];
                 isAdmin?: boolean;
                 isUnlimited?: boolean;
