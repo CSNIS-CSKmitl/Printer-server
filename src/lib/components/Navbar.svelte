@@ -21,8 +21,8 @@
 	);
 	let discordModalOpen = $state(false);
 
-	const isSuperAdmin = $derived(user?.role === "superadmin");
-	const isTeacher = $derived(user?.role === "teachers");
+	const isSuperAdmin = $derived(Boolean(user?.isAdmin || user?.role === "superadmin" || user?.role === "super_admin" || user?.role === "head"));
+	const isTeacher = $derived(Boolean(user?.isUnlimited || user?.role === "teachers"));
 	const canPrintTeacher = $derived(isTeacher || isSuperAdmin);
 
 	const links = $derived([
