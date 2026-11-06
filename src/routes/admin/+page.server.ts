@@ -10,6 +10,7 @@ import { cancelPrintJob } from '$lib/server/functions/print/cancelPrintJob';
 import { getAdminClient } from '$lib/server/functions/pocketbase/getAdminClient';
 import { calculatePrintStats, type PrintTimeRange } from '$lib/print-stats';
 import { writeAdminAction } from '$lib/server/audit-log';
+import { canAccessAdmin } from '$lib/roles';
 
 /**
  * ปรับลำดับคิวพิมพ์ในระบบ
@@ -31,9 +32,9 @@ function decorateQueuePositions(
 }
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	// 🛡️ ป้องกันความปลอดภัย: เช็คว่าล็อกอินและเป็นแอดมินของระบบจริงไหม
+	// 🛡️ ป้องกันความปลอดภัย: เช็คว่าล็อกอินและเป็นแอดมินของระบบจริงไหม (super_admin หรือ head)
 	if (!locals.user) throw redirect(303, '/login');
-	if (locals.user.role !== 'superadmin') throw redirect(303, '/user');
+	if (!canAccessAdmin(locals.user)) throw redirect(303, '/user');
 
 	const pb = locals.pb;
 	const loadedAt = new Date().toISOString();
@@ -97,7 +98,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
 	adjustQuota: async ({ request, locals }) => {
-		if (!locals.user || locals.user.role !== 'superadmin') throw error(403, 'Forbidden');
+		if (!canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
 
 		const data = await request.formData();
 		const userId = String(data.get('userId') ?? '');
@@ -123,7 +124,7 @@ export const actions: Actions = {
 	},
 
 	resetQuota: async ({ request, locals }) => {
-		if (!locals.user || locals.user.role !== 'superadmin') throw error(403, 'Forbidden');
+		if (!canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
 
 		const data = await request.formData();
 		const userId = String(data.get('userId') ?? '');
@@ -147,7 +148,7 @@ export const actions: Actions = {
 	},
 
 	bulkAdjustQuota: async ({ request, locals }) => {
-		if (!locals.user || locals.user.role !== 'superadmin') throw error(403, 'Forbidden');
+		if (!canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
 
 		const data = await request.formData();
 		const userIds = data
@@ -177,7 +178,7 @@ export const actions: Actions = {
 	},
 
 	bulkResetQuota: async ({ request, locals }) => {
-		if (!locals.user || locals.user.role !== 'superadmin') throw error(403, 'Forbidden');
+		if (!canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
 
 		const data = await request.formData();
 		const userIds = data
@@ -200,7 +201,7 @@ export const actions: Actions = {
 	},
 
 	suspend: async ({ request, locals }) => {
-		if (!locals.user || locals.user.role !== 'superadmin') throw error(403, 'Forbidden');
+		if (!canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
 
 		const data = await request.formData();
 		const jobId = String(data.get('jobId') ?? '');
@@ -234,7 +235,7 @@ export const actions: Actions = {
 	},
 
 	remove: async ({ request, locals }) => {
-		if (!locals.user || locals.user.role !== 'superadmin') throw error(403, 'Forbidden');
+		if (!canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
 
 		const data = await request.formData();
 		const jobId = String(data.get('jobId') ?? '');

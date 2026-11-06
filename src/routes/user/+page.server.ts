@@ -196,7 +196,7 @@ export const actions: Actions = {
 			const totalPages = printedPagesPerCopy * copies;
 
 			// Reserve the quota based on the actual pages
-			const reservation = await deductQuota(pb, locals.user.id, totalPages, locals.user.user_type_id);
+			const reservation = await deductQuota(pb, locals.user.id, totalPages, locals.user);
 			if (!reservation) {
 				throw new Error('INSUFFICIENT_QUOTA');
 			}
@@ -331,14 +331,14 @@ export const actions: Actions = {
 		pb.authStore.save(locals.user.token);
 		try {
 			const job = await pb.collection('print_jobs').getOne<PrintJobsRecord>(jobId);
-			if (job.user !== locals.user.id && locals.user.role !== 'superadmin') {
+			if (job.user !== locals.user.id && !locals.user.isAdmin) {
 				throw error(403, 'Forbidden');
 			}
 			if (job.status !== 'pending' && job.status !== 'processing') {
 				return { ok: false, message: 'ไม่สามารถยกเลิกงานที่พิมพ์เสร็จแล้ว' };
 			}
 
-			const isCancelledByAdmin = locals.user.role === 'superadmin' && job.user !== locals.user.id;
+			const isCancelledByAdmin = !!locals.user.isAdmin && job.user !== locals.user.id;
 			await pb.collection('print_jobs').update(jobId, {
 				status: 'failed',
 				error_message: isCancelledByAdmin ? 'Cancelled by admin' : 'Cancelled by user'

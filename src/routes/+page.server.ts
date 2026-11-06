@@ -1,5 +1,6 @@
-import { redirect, error } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { canAccessAdmin } from '$lib/roles';
 
 /**
  * Root entry point — bounce visitors straight to the unified login
@@ -7,7 +8,7 @@ import type { PageServerLoad } from './$types';
  */
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) throw redirect(303, '/login');
-	if (locals.user.role === 'superadmin') {
+	if (canAccessAdmin(locals.user)) {
 		throw redirect(303, '/admin');
 	} else {
 		throw redirect(303, '/user');

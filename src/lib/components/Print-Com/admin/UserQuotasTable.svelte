@@ -303,14 +303,14 @@
 							{u.expand?.user_type?.type ?? "—"}
 						</td>
 						<td class="px-6 py-4 text-secondary-app">
-							{#if ["000000000000002", "000000000000009"].includes(u.expand?.user_type?.id ?? "")}
+							{#if ["000000000000002", "000000000000004", "000000000000005", "000000000000006", "000000000000007", "000000000000009", "000000000000010"].includes((Array.isArray(u.user_type) ? u.user_type[0] : (u.expand?.user_type?.id || u.user_type)) ?? "")}
 								ไม่จำกัด
 							{:else}
 								{quota.tierTotal} หน้า / เทอม
 							{/if}
 						</td>
 						<td class="px-6 py-4">
-							{#if ["000000000000002", "000000000000009"].includes(u.expand?.user_type?.id ?? "")}
+							{#if ["000000000000002", "000000000000004", "000000000000005", "000000000000006", "000000000000007", "000000000000009", "000000000000010"].includes((Array.isArray(u.user_type) ? u.user_type[0] : (u.expand?.user_type?.id || u.user_type)) ?? "")}
 								<div class="text-sm font-medium text-fg-app">
 									<span class="text-accent">ไม่จำกัด</span>
 									<span class="text-muted-app">

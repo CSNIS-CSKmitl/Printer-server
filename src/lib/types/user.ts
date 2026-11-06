@@ -1,6 +1,6 @@
 // User-related types.
 
-export type UserRole = 'superadmin' | 'admin' | 'user' | 'teachers';
+export type UserRole = 'super_admin' | 'superadmin' | 'admin' | 'user' | 'teachers' | 'head';
 
 export interface SessionUser {
 	id: string;
@@ -8,4 +8,7 @@ export interface SessionUser {
 	name?: string;
 	username?: string;
 	role: UserRole;
+	roles?: string[];
+	isAdmin?: boolean;
+	isUnlimited?: boolean;
 }

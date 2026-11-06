@@ -4,12 +4,13 @@ import { calculateSnapshot } from './calculateSnapshot';
 import { getDefaultPackage } from './getDefaultPackage';
 import type { QuotaRow, QuotaSnapshot } from './types';
 import { getQuota } from './getQuota';
+import { hasUnlimitedPrinting } from '../../../roles';
 
 export async function deductQuota(
 	pb: AppPocketBase,
 	userId: string,
 	pages: number,
-	userTypeId?: string | null
+	userRecordOrRoles?: any
 ): Promise<QuotaSnapshot | null> {
 	if (pages <= 0) return getQuota(pb, userId);
 
@@ -31,8 +32,12 @@ export async function deductQuota(
 			}, { expand: 'Total_Quota' });
 		}
 
+		const isUnlimited = typeof userRecordOrRoles === 'object' && userRecordOrRoles !== null
+			? hasUnlimitedPrinting(userRecordOrRoles)
+			: hasUnlimitedPrinting({ user_type: userRecordOrRoles });
+
 		const snap = calculateSnapshot(row);
-		if (snap.remaining < pages && userTypeId !== '000000000000002' && userTypeId !== '000000000000009') return null; // โควต้าไม่พอ (ยกเว้นอาจารย์)
+		if (snap.remaining < pages && !isUnlimited) return null; // โควต้าไม่พอ (ยกเว้นผู้ที่ได้สิทธิ์พิมพ์ไม่จำกัด: teacher, staff, super_admin, head)
 
 		// อัปเดตยอดใช้ไป
 		const updatedRow = await adminPb.collection('Quota').update<QuotaRow>(row.id, {

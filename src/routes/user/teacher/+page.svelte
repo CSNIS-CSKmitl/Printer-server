@@ -77,7 +77,7 @@
 					โควต้าคงเหลือ (Quota Remaining)
 				</p>
 				<p class="mt-1 text-2xl font-semibold text-fg-app">
-					{#if ['000000000000002', '000000000000009'].includes(data.user?.user_type_id ?? '')}
+					{#if (data.user?.isUnlimited || ['000000000000002', '000000000000004', '000000000000005', '000000000000006', '000000000000007', '000000000000009', '000000000000010'].includes(data.user?.user_type_id ?? ''))}
 						<span class="text-accent">ไม่จำกัด (Unlimited)</span>
 					{:else}
 						<span
@@ -93,7 +93,7 @@
 					{/if}
 				</p>
 			</div>
-			{#if ['000000000000002', '000000000000009'].includes(data.user?.user_type_id ?? '')}
+			{#if (data.user?.isUnlimited || ['000000000000002', '000000000000004', '000000000000005', '000000000000006', '000000000000007', '000000000000009', '000000000000010'].includes(data.user?.user_type_id ?? ''))}
 				<div class="hidden flex-1 sm:block text-right">
 					<p class="text-xs text-muted-app">
 						ใช้ไปแล้วทั้งหมด {data.quota.used} หน้า

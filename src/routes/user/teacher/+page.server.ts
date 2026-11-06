@@ -52,7 +52,7 @@ const AVG_MINUTES_PER_QUEUE_SLOT = 2;
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) throw redirect(303, '/login');
-	if (locals.user.role !== 'teachers' && locals.user.role !== 'superadmin' && locals.user.role !== 'admin') {
+	if (!locals.user.isUnlimited && !locals.user.isAdmin) {
 		throw error(403, 'นักศึกษาไม่ได้รับอนุญาตให้ใช้งานระบบนี้');
 	}
 
@@ -99,7 +99,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	print: async ({ request, locals }) => {
 		if (!locals.user) throw error(401, 'Unauthorized');
-		if (locals.user.role !== 'teachers' && locals.user.role !== 'superadmin' && locals.user.role !== 'admin') {
+		if (!locals.user.isUnlimited && !locals.user.isAdmin) {
 			throw error(403, 'Forbidden');
 		}
 
@@ -182,7 +182,7 @@ export const actions: Actions = {
 			const printedPagesPerCopy = Math.ceil(actualPages / pagesPerSheet);
 			const totalPages = printedPagesPerCopy * copies;
 
-			const reservation = await deductQuota(pb, locals.user.id, totalPages, locals.user.user_type_id);
+			const reservation = await deductQuota(pb, locals.user.id, totalPages, locals.user);
 			if (!reservation) {
 				throw new Error('INSUFFICIENT_QUOTA');
 			}
@@ -276,7 +276,7 @@ export const actions: Actions = {
 
 	cancel: async ({ request, locals }) => {
 		if (!locals.user) throw error(401, 'Unauthorized');
-		if (locals.user.role !== 'teachers' && locals.user.role !== 'superadmin' && locals.user.role !== 'admin') {
+		if (!locals.user.isUnlimited && !locals.user.isAdmin) {
 			throw error(403, 'Forbidden');
 		}
 
@@ -289,14 +289,14 @@ export const actions: Actions = {
 
 		try {
 			const job = await pb.collection('print_jobs').getOne<PrintJobsRecord>(jobId);
-			if (job.user !== locals.user.id && locals.user.role !== 'superadmin') {
+			if (job.user !== locals.user.id && !locals.user.isAdmin) {
 				throw error(403, 'Forbidden');
 			}
 			if (job.status !== 'pending' && job.status !== 'processing') {
 				return { ok: false, message: 'ไม่สามารถยกเลิกงานที่พิมพ์เสร็จแล้ว' };
 			}
 
-			const isCancelledByAdmin = locals.user.role === 'superadmin' && job.user !== locals.user.id;
+			const isCancelledByAdmin = !!locals.user.isAdmin && job.user !== locals.user.id;
 			await pb.collection('print_jobs').update(jobId, {
 				status: 'failed',
 				error_message: isCancelledByAdmin ? 'Cancelled by admin' : 'Cancelled by user'

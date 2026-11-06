@@ -12,7 +12,10 @@ declare global {
                 email: string;
                 name?: string;
                 username?: string;
-                role: 'admin' | 'user' | 'superadmin' | 'teachers';
+                role: 'admin' | 'user' | 'super_admin' | 'superadmin' | 'teachers' | 'head';
+                roles?: string[];
+                isAdmin?: boolean;
+                isUnlimited?: boolean;
                 user_type_id: string | null;
                 /** PB auth token — kept on the locals payload so server actions
                  * can rehydrate a fresh client without re-validating the cookie. */

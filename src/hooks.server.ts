@@ -13,55 +13,20 @@ import { createPb } from '$lib/pb/server';
 import type { UserRole } from '$lib/types';
 import { startPrintJobMonitor } from '$lib/server/functions/monitor/startPrintJobMonitor';
 import { getAdminClient } from '$lib/server/functions/pocketbase/getAdminClient';
+import { getUserRoles, canAccessAdmin, hasUnlimitedPrinting, hasRole } from '$lib/roles';
 
 // Start background print job monitor every 500ms
 if (!building) startPrintJobMonitor(500);
 
-interface UserTypeRef {
-    type?: string;
-}
-
-interface UserRecord {
-    id: string;
-    email: string;
-    name?: string;
-    username?: string;
-    user_type?: string | null;
-    expand?: {
-        user_type?: UserTypeRef;
-        Quota_via_user?: Array<{
-            id: string;
-            user: string;
-            Total_Quota: number;
-            Quota: string;
-            Use: number;
-        }>;
-    };
-}
-
-function resolveRole(record: UserRecord): UserRole {
-    // PB returns expanded user under `expand.<field>`, NOT inline on
-    // the field itself. `user_type` stays as the user ID, the actual
-    // record lives at `record.expand.user_type`.
-    const expanded = record.expand?.user_type;
-    const typeName = expanded?.type ?? null;
-    const userTypeId = record.user_type ?? null;
-    
-    if (typeName) {
-        const lower = typeName.toLowerCase();
-        if (lower === 'superadmin') return 'superadmin';
-        if (lower === 'admin') return 'admin';
-        if (lower === 'teachers' || lower === 'teacher' || lower === 'อาจารย์') return 'teachers';
-    }
-    
-    if (userTypeId === '000000000000002' || userTypeId === '000000000000009') {
-        return 'teachers';
-    }
-    
+function resolveRole(record: any): UserRole {
+    if (hasRole(record, 'head')) return 'head';
+    if (hasRole(record, 'super_admin', 'superadmin')) return 'super_admin';
+    if (hasRole(record, 'admin')) return 'admin';
+    if (hasRole(record, 'teachers', 'teacher')) return 'teachers';
     return 'user';
 }
 
-function resolveEmail(record: UserRecord): string {
+function resolveEmail(record: any): string {
     if (record.email) return record.email;
     if (record.username) return `${record.username}@cskmitl.internal`;
     return 'unknown@cskmitl.internal';
@@ -122,6 +87,11 @@ export const handle: Handle = async ({ event, resolve }) => {
                 }
             }
 
+            const userRoles = getUserRoles(full);
+            const isUnlimited = hasUnlimitedPrinting(full);
+            const isAdmin = canAccessAdmin(full);
+            const userTypeId = Array.isArray(full.user_type) ? (full.user_type[0] ?? null) : (full.user_type ?? null);
+
             // 3. แนบสถานะโควต้าที่ใช้งานได้จริงเข้าไปใน session ของผู้ใช้
             event.locals.user = {
                 id: full.id,
@@ -129,7 +99,10 @@ export const handle: Handle = async ({ event, resolve }) => {
                 name: full.name ?? full.username,
                 username: full.username,
                 role: resolveRole(full),
-                user_type_id: full.user_type ?? null,
+                roles: userRoles,
+                isAdmin,
+                isUnlimited,
+                user_type_id: userTypeId,
                 token: pb.authStore.token,
 
                 quota: {
