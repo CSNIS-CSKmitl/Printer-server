@@ -1,6 +1,6 @@
-import { redirect } from '@sveltejs/kit';
-import { clearSession } from '$lib/server/functions/session/clearSession';
-import type { RequestHandler } from './$types';
+import { redirect } from "@sveltejs/kit";
+import { clearSession } from "$lib/server/functions/session/clearSession";
+import type { RequestHandler } from "./$types";
 
 /**
  * Global logout endpoint — clears the `pb_auth` cookie and bounces to
@@ -9,6 +9,6 @@ import type { RequestHandler } from './$types';
  * dashboard without needing a per-page form action.
  */
 export const POST: RequestHandler = async ({ cookies }) => {
-	clearSession(cookies);
-	throw redirect(303, '/login');
+  clearSession(cookies);
+  throw redirect(303, "/login");
 };

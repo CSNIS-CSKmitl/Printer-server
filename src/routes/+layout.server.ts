@@ -1,7 +1,7 @@
-import type { LayoutServerLoad } from './$types';
-import { serverEnv } from '$lib/server/env';
+import type { LayoutServerLoad } from "./$types";
+import { serverEnv } from "$lib/server/env";
 
-export const trailingSlash = 'ignore';
+export const trailingSlash = "ignore";
 
 /**
  * Forward the resolved session user and discordLink to every page via `page.data`
@@ -9,8 +9,8 @@ export const trailingSlash = 'ignore';
  * its own lookup.
  */
 export const load: LayoutServerLoad = async ({ locals }) => {
-	return {
-		user: locals.user,
-		discordLink: serverEnv.discordLink
-	};
+  return {
+    user: locals.user,
+    discordLink: serverEnv.discordLink,
+  };
 };

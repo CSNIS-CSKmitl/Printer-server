@@ -1,89 +1,139 @@
-import type { UserRole, DisplayRole } from './types/role';
+import type { UserRole, DisplayRole } from "./types/role";
 export type { UserRole, DisplayRole };
 
 export function getUserRoles(record: any): string[] {
-	if (!record) return [];
-	const roles = new Set<string>();
+  if (!record) return [];
+  const roles = new Set<string>();
 
-	// Check record.roles if already computed
-	if (Array.isArray(record.roles)) {
-		for (const r of record.roles) {
-			if (typeof r === 'string' && !isRawRoleId(r)) roles.add(r.toLowerCase().trim());
-		}
-	}
+  // Check record.roles if already computed
+  if (Array.isArray(record.roles)) {
+    for (const r of record.roles) {
+      if (typeof r === "string" && !isRawRoleId(r))
+        roles.add(r.toLowerCase().trim());
+    }
+  }
 
-	// Check expand.user_type (array or object)
-	const expanded = record.expand?.user_type;
-	if (Array.isArray(expanded)) {
-		for (const item of expanded) {
-			if (item?.type && !isRawRoleId(item.type)) roles.add(item.type.toLowerCase().trim());
-			if (item?.id) addIdRole(item.id, roles);
-		}
-	} else if (expanded && typeof expanded === 'object') {
-		if (expanded.type && !isRawRoleId(expanded.type)) roles.add(expanded.type.toLowerCase().trim());
-		if (expanded.id) addIdRole(expanded.id, roles);
-	}
+  // Check expand.user_type (array or object)
+  const expanded = record.expand?.user_type;
+  if (Array.isArray(expanded)) {
+    for (const item of expanded) {
+      if (item?.type && !isRawRoleId(item.type))
+        roles.add(item.type.toLowerCase().trim());
+      if (item?.id) addIdRole(item.id, roles);
+    }
+  } else if (expanded && typeof expanded === "object") {
+    if (expanded.type && !isRawRoleId(expanded.type))
+      roles.add(expanded.type.toLowerCase().trim());
+    if (expanded.id) addIdRole(expanded.id, roles);
+  }
 
-	// Check user_type field (array of ids/strings or single string)
-	const ut = record.user_type ?? record.user_type_id;
-	if (Array.isArray(ut)) {
-		for (const item of ut) {
-			if (typeof item === 'string') {
-				if (!isRawRoleId(item)) roles.add(item.toLowerCase().trim());
-				addIdRole(item, roles);
-			}
-		}
-	} else if (typeof ut === 'string') {
-		if (!isRawRoleId(ut)) roles.add(ut.toLowerCase().trim());
-		addIdRole(ut, roles);
-	}
+  // Check user_type field (array of ids/strings or single string)
+  const ut = record.user_type ?? record.user_type_id;
+  if (Array.isArray(ut)) {
+    for (const item of ut) {
+      if (typeof item === "string") {
+        if (!isRawRoleId(item)) roles.add(item.toLowerCase().trim());
+        addIdRole(item, roles);
+      }
+    }
+  } else if (typeof ut === "string") {
+    if (!isRawRoleId(ut)) roles.add(ut.toLowerCase().trim());
+    addIdRole(ut, roles);
+  }
 
-	return Array.from(roles);
+  return Array.from(roles);
 }
 
-
 function isRawRoleId(str: string): boolean {
-	return typeof str === 'string' && /^0{10,}\d+$/.test(str.trim());
+  return typeof str === "string" && /^0{10,}\d+$/.test(str.trim());
 }
 
 function addIdRole(id: string, set: Set<string>) {
-	if (id === '000000000000000') set.add('admin');
-	if (id === '000000000000001') set.add('students');
-	if (id === '000000000000002') { set.add('teachers'); set.add('teacher'); }
-	if (id === '000000000000003') { set.add('guests'); set.add('guest'); }
-	if (id === '000000000000009') { set.add('superadmin'); set.add('super_admin'); }
-	if (id === '000000000000004') { set.add('staff'); set.add('stuff'); }
-	if (id === '000000000000005') set.add('head');
-	if (id === '000000000000006') { set.add('teacher'); set.add('teachers'); }
-	if (id === '000000000000007') { set.add('stuff'); set.add('staff'); }
-	if (id === '000000000000008') { set.add('guest'); set.add('guests'); }
-	if (id === '0000000000000010' || id === '000000000000010') { set.add('super_admin'); set.add('superadmin'); }
+  if (id === "000000000000000") set.add("admin");
+  if (id === "000000000000001") set.add("students");
+  if (id === "000000000000002") {
+    set.add("teachers");
+    set.add("teacher");
+  }
+  if (id === "000000000000003") {
+    set.add("guests");
+    set.add("guest");
+  }
+  if (id === "000000000000009") {
+    set.add("superadmin");
+    set.add("super_admin");
+  }
+  if (id === "000000000000004") {
+    set.add("staff");
+    set.add("stuff");
+  }
+  if (id === "000000000000005") set.add("head");
+  if (id === "000000000000006") {
+    set.add("teacher");
+    set.add("teachers");
+  }
+  if (id === "000000000000007") {
+    set.add("stuff");
+    set.add("staff");
+  }
+  if (id === "000000000000008") {
+    set.add("guest");
+    set.add("guests");
+  }
+  if (id === "0000000000000010" || id === "000000000000010") {
+    set.add("super_admin");
+    set.add("superadmin");
+  }
 }
 
 export function hasRole(record: any, ...targetRoles: string[]): boolean {
-	const userRoles = getUserRoles(record);
-	for (const target of targetRoles) {
-		const t = target.toLowerCase().trim();
-		if (userRoles.includes(t)) return true;
-		// Handle aliases
-		if ((t === 'teacher' || t === 'teachers') && (userRoles.includes('teacher') || userRoles.includes('teachers') || userRoles.includes('อาจารย์'))) return true;
-		if ((t === 'staff' || t === 'stuff') && (userRoles.includes('staff') || userRoles.includes('stuff'))) return true;
-		if ((t === 'superadmin' || t === 'super_admin') && (userRoles.includes('superadmin') || userRoles.includes('super_admin'))) return true;
-		if ((t === 'guest' || t === 'guests') && (userRoles.includes('guest') || userRoles.includes('guests'))) return true;
-		if ((t === 'student' || t === 'students') && (userRoles.includes('student') || userRoles.includes('students'))) return true;
-		if (t === 'head' && userRoles.includes('head')) return true;
-	}
-	return false;
+  const userRoles = getUserRoles(record);
+  for (const target of targetRoles) {
+    const t = target.toLowerCase().trim();
+    if (userRoles.includes(t)) return true;
+    // Handle aliases
+    if (
+      (t === "teacher" || t === "teachers") &&
+      (userRoles.includes("teacher") ||
+        userRoles.includes("teachers") ||
+        userRoles.includes("อาจารย์"))
+    )
+      return true;
+    if (
+      (t === "staff" || t === "stuff") &&
+      (userRoles.includes("staff") || userRoles.includes("stuff"))
+    )
+      return true;
+    if (
+      (t === "superadmin" || t === "super_admin") &&
+      (userRoles.includes("superadmin") || userRoles.includes("super_admin"))
+    )
+      return true;
+    if (
+      (t === "guest" || t === "guests") &&
+      (userRoles.includes("guest") || userRoles.includes("guests"))
+    )
+      return true;
+    if (
+      (t === "student" || t === "students") &&
+      (userRoles.includes("student") || userRoles.includes("students"))
+    )
+      return true;
+    if (t === "head" && userRoles.includes("head")) return true;
+  }
+  return false;
 }
 
 /**
  * In printer-server, admin access to /admin requires:
  * super_admin OR head (or PB_ADMIN_EMAIL).
  */
-export function canAccessAdmin(record: any): record is NonNullable<App.Locals['user']> {
-	if (!record) return false;
-	if (record.email === 'log@cskmitl.com') return true;
-	return hasRole(record, 'superadmin', 'super_admin', 'head');
+export function canAccessAdmin(
+  record: any,
+): record is NonNullable<App.Locals["user"]> {
+  if (!record) return false;
+  if (record.email === "log@cskmitl.com") return true;
+  return hasRole(record, "superadmin", "super_admin", "head");
 }
 
 /**
@@ -91,22 +141,42 @@ export function canAccessAdmin(record: any): record is NonNullable<App.Locals['u
  * teacher (teachers), staff (stuff), super_admin (superadmin), head.
  */
 export function hasUnlimitedPrinting(record: any): boolean {
-	if (!record) return false;
-	if (record.email === 'log@cskmitl.com') return true;
-	return hasRole(record, 'teacher', 'teachers', 'staff', 'stuff', 'superadmin', 'super_admin', 'head');
+  if (!record) return false;
+  if (record.email === "log@cskmitl.com") return true;
+  return hasRole(
+    record,
+    "teacher",
+    "teachers",
+    "staff",
+    "stuff",
+    "superadmin",
+    "super_admin",
+    "head",
+  );
 }
 
 /**
  * แปลง Role ทางเทคนิคให้เป็นชื่อบทบาทที่อ่านง่ายสำหรับแสดงในอีเมลและหน้าจอ
  */
 export function formatDisplayRole(userOrRoles: any): DisplayRole {
-	const roleList = Array.isArray(userOrRoles) ? userOrRoles : getUserRoles(userOrRoles);
-	const cleanRoles = roleList.filter((r) => !isRawRoleId(r));
-	if (cleanRoles.some((r) => ['super_admin', 'superadmin', 'admin', 'staff', 'stuff'].includes(r))) return 'เจ้าหน้าที่ (Staff)';
-	if (cleanRoles.includes('head')) return 'หัวหน้าภาควิชา (Head)';
-	if (cleanRoles.some((r) => ['teacher', 'teachers'].includes(r))) return 'อาจารย์ (Teacher)';
-	if (cleanRoles.some((r) => ['staff', 'stuff'].includes(r))) return 'เจ้าหน้าที่ (Staff)';
-	if (cleanRoles.some((r) => ['student', 'students'].includes(r))) return 'นักศึกษา (Student)';
-	if (cleanRoles.some((r) => ['guest', 'guests'].includes(r))) return 'บุคคลภายนอก (Guest)';
-	return cleanRoles.length > 0 ? cleanRoles[0] : 'ผู้ใช้งาน';
+  const roleList = Array.isArray(userOrRoles)
+    ? userOrRoles
+    : getUserRoles(userOrRoles);
+  const cleanRoles = roleList.filter((r) => !isRawRoleId(r));
+  if (
+    cleanRoles.some((r) =>
+      ["super_admin", "superadmin", "admin", "staff", "stuff"].includes(r),
+    )
+  )
+    return "เจ้าหน้าที่ (Staff)";
+  if (cleanRoles.includes("head")) return "หัวหน้าภาควิชา (Head)";
+  if (cleanRoles.some((r) => ["teacher", "teachers"].includes(r)))
+    return "อาจารย์ (Teacher)";
+  if (cleanRoles.some((r) => ["staff", "stuff"].includes(r)))
+    return "เจ้าหน้าที่ (Staff)";
+  if (cleanRoles.some((r) => ["student", "students"].includes(r)))
+    return "นักศึกษา (Student)";
+  if (cleanRoles.some((r) => ["guest", "guests"].includes(r)))
+    return "บุคคลภายนอก (Guest)";
+  return cleanRoles.length > 0 ? cleanRoles[0] : "ผู้ใช้งาน";
 }

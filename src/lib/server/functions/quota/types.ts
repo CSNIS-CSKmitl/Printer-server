@@ -1,1 +1,1 @@
-export * from '$lib/types/quota';
+export * from "$lib/types/quota";

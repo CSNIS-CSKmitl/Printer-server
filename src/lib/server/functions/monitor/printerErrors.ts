@@ -1,10 +1,7 @@
-export {
-	parsePrinterError,
-	checkCupsErrorLog
-} from '../../printer-errors.mjs';
+export { parsePrinterError, checkCupsErrorLog } from "../../printer-errors.mjs";
 
 export interface PrinterErrorInfo {
-	isError: boolean;
-	isIppDataError: boolean;
-	message?: string;
+  isError: boolean;
+  isIppDataError: boolean;
+  message?: string;
 }

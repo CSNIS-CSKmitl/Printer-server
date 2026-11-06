@@ -1,7 +1,7 @@
 export interface PrinterErrorInfo {
-	isError: boolean;
-	isIppDataError: boolean;
-	message?: string;
+  isError: boolean;
+  isIppDataError: boolean;
+  message?: string;
 }
 
 export function parsePrinterError(text?: string | null): PrinterErrorInfo;

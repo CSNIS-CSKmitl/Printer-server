@@ -34,7 +34,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: "24"
           package-manager-cache: false
 
       - name: Install dependencies
@@ -72,7 +72,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: "24"
           package-manager-cache: false
 
       - name: Install dependencies
@@ -125,7 +125,6 @@ jobs:
       SSH_USER: ${{ secrets.SSH_USER }}
       DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
       PM2_APP_NAME: ${{ vars.PM2_APP_NAME || 'printer-server' }}
-
 
     steps:
       - name: Checkout
@@ -326,7 +325,6 @@ jobs:
       SSH_USER: ${{ secrets.SSH_USER }}
       DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
       PM2_APP_NAME: ${{ vars.PM2_APP_NAME || 'printer-server' }}
-
 
     steps:
       - name: Validate configuration

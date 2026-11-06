@@ -62,4 +62,3 @@ You can preview the production build with `npm run preview`.
 
 - [นโยบายความเป็นส่วนตัว](https://printer.cskmitl.com/privacy)
 - [ข้อกำหนดการใช้งาน](https://printer.cskmitl.com/terms)
-

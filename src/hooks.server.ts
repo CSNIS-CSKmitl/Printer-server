@@ -7,118 +7,137 @@
 // dedicated collections (`Quota`, `Total_Quota`). Pages that need
 // quota state pull it through `$lib/server/quota.ts` helpers.
 
-import type { Handle } from '@sveltejs/kit';
-import { building } from '$app/environment';
-import { createPb } from '$lib/pb/server';
-import type { UserRole } from '$lib/types';
-import { startPrintJobMonitor } from '$lib/server/functions/monitor/startPrintJobMonitor';
-import { getAdminClient } from '$lib/server/functions/pocketbase/getAdminClient';
-import { getUserRoles, canAccessAdmin, hasUnlimitedPrinting, hasRole } from '$lib/roles';
+import type { Handle } from "@sveltejs/kit";
+import { building } from "$app/environment";
+import { createPb } from "$lib/pb/server";
+import type { UserRole } from "$lib/types";
+import { startPrintJobMonitor } from "$lib/server/functions/monitor/startPrintJobMonitor";
+import { getAdminClient } from "$lib/server/functions/pocketbase/getAdminClient";
+import {
+  getUserRoles,
+  canAccessAdmin,
+  hasUnlimitedPrinting,
+  hasRole,
+} from "$lib/roles";
 
 // Start background print job monitor every 500ms
 if (!building) startPrintJobMonitor(500);
 
 function resolveRole(record: any): UserRole {
-    if (hasRole(record, 'head')) return 'head';
-    if (hasRole(record, 'super_admin', 'superadmin')) return 'super_admin';
-    if (hasRole(record, 'admin')) return 'admin';
-    if (hasRole(record, 'teachers', 'teacher')) return 'teachers';
-    return 'user';
+  if (hasRole(record, "head")) return "head";
+  if (hasRole(record, "super_admin", "superadmin")) return "super_admin";
+  if (hasRole(record, "admin")) return "admin";
+  if (hasRole(record, "teachers", "teacher")) return "teachers";
+  return "user";
 }
 
 function resolveEmail(record: any): string {
-    if (record.email) return record.email;
-    if (record.username) return `${record.username}@cskmitl.internal`;
-    return 'unknown@cskmitl.internal';
+  if (record.email) return record.email;
+  if (record.username) return `${record.username}@cskmitl.internal`;
+  return "unknown@cskmitl.internal";
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
-    event.locals.pb = createPb(event);
+  event.locals.pb = createPb(event);
 
-    const pb = event.locals.pb;
-    if (pb.authStore.isValid) {
+  const pb = event.locals.pb;
+  if (pb.authStore.isValid) {
+    try {
+      await pb.collection("users").authRefresh();
+      const userId = pb.authStore.record?.id;
+      if (!userId) throw new Error("no user id in auth store");
+
+      const pbAdmin = await getAdminClient();
+
+      // 1. ดึงข้อมูลพนักงาน + ดึงข้อมูลจากคอลเลกชัน Quota (ตารางลูก) ที่ผูกผ่านฟิลด์ user โดยใช้สิทธิ์ Admin
+      // เพื่อหลีกเลี่ยงข้อจำกัดของสิทธิ์การเข้าถึง (View/List rules) บนคอลเลกชัน Quota
+      let full = (await pbAdmin.collection("users").getOne(userId, {
+        expand: "user_type,Quota_via_user.Total_Quota",
+      })) as unknown as any;
+
+      // ดึงข้อมูลผ่านตัวแปรที่เป็นพิมพ์ใหญ่ Quota_via_user ให้ตรงกับ Schema
+      let quotaRecord = full.expand?.Quota_via_user?.[0] ?? null;
+
+      // 🌟 2. ถ้าเข้าสู่ระบบครั้งแรกแล้วยังไม่มีประวัติในคอลเลกชัน Quota ให้สร้างอัตโนมัติ
+      if (!quotaRecord) {
         try {
-            await pb.collection('users').authRefresh();
-            const userId = pb.authStore.record?.id;
-            if (!userId) throw new Error('no user id in auth store');
+          // ก. ค้นหาแถวโควต้าตั้งต้นจากคอลเลกชัน "Total_Quota" (ตารางแม่)
+          // ในที่นี้เลือกแถวแรกที่มีอยู่ในระบบขึ้นมาเป็นค่า Default (เช่น Tier 100 หน้า หรือ 500 หน้า)
+          const defaultMaster = await pbAdmin
+            .collection("Total_Quota")
+            .getFirstListItem("");
 
-            const pbAdmin = await getAdminClient();
+          // ข. ทำการสร้าง Record ใหม่ในคอลเลกชัน "Quota" (ตารางลูก)
+          const newQuota = await pbAdmin.collection("Quota").create(
+            {
+              user: [userId],
+              Total_Quota: [defaultMaster.id],
+              Add_Quota: 0,
+              Use: 0,
+            },
+            { expand: "Total_Quota" },
+          );
 
-            // 1. ดึงข้อมูลพนักงาน + ดึงข้อมูลจากคอลเลกชัน Quota (ตารางลูก) ที่ผูกผ่านฟิลด์ user โดยใช้สิทธิ์ Admin
-            // เพื่อหลีกเลี่ยงข้อจำกัดของสิทธิ์การเข้าถึง (View/List rules) บนคอลเลกชัน Quota
-            let full = (await pbAdmin.collection('users').getOne(userId, {
-                expand: 'user_type,Quota_via_user.Total_Quota'
-            })) as unknown as any;
+          // จัดการโครงสร้างอ็อบเจกต์ให้ตรงกับ session/locals
+          quotaRecord = {
+            id: newQuota.id,
+            user: userId,
+            expand: {
+              Total_Quota: {
+                id: defaultMaster.id,
+                Total_Quota: defaultMaster.Total_Quota,
+              },
+            },
+            Use: 0,
+          };
 
-            // ดึงข้อมูลผ่านตัวแปรที่เป็นพิมพ์ใหญ่ Quota_via_user ให้ตรงกับ Schema
-            let quotaRecord = full.expand?.Quota_via_user?.[0] ?? null;
-
-            // 🌟 2. ถ้าเข้าสู่ระบบครั้งแรกแล้วยังไม่มีประวัติในคอลเลกชัน Quota ให้สร้างอัตโนมัติ
-            if (!quotaRecord) {
-                try {
-                    // ก. ค้นหาแถวโควต้าตั้งต้นจากคอลเลกชัน "Total_Quota" (ตารางแม่) 
-                    // ในที่นี้เลือกแถวแรกที่มีอยู่ในระบบขึ้นมาเป็นค่า Default (เช่น Tier 100 หน้า หรือ 500 หน้า)
-                    const defaultMaster = await pbAdmin.collection('Total_Quota').getFirstListItem('');
-
-                    // ข. ทำการสร้าง Record ใหม่ในคอลเลกชัน "Quota" (ตารางลูก)
-                    const newQuota = await pbAdmin.collection('Quota').create({
-                        user: [userId],
-                        Total_Quota: [defaultMaster.id],
-                        Add_Quota: 0,
-                        Use: 0
-                    }, { expand: 'Total_Quota' });
-
-                    // จัดการโครงสร้างอ็อบเจกต์ให้ตรงกับ session/locals
-                    quotaRecord = {
-                        id: newQuota.id,
-                        user: userId,
-                        expand: {
-                            Total_Quota: {
-                                id: defaultMaster.id,
-                                Total_Quota: defaultMaster.Total_Quota
-                            }
-                        },
-                        Use: 0
-                    };
-
-                    console.log(`[Hooks] Auto-created initial Quota record for user: ${userId} linking to Master Quota Tier: ${defaultMaster.id}`);
-                } catch (createErr) {
-                    console.error('Failed to auto-create quota entry on login:', createErr);
-                }
-            }
-
-            const userRoles = getUserRoles(full);
-            const isUnlimited = hasUnlimitedPrinting(full);
-            const isAdmin = canAccessAdmin(full);
-            const userTypeId = Array.isArray(full.user_type) ? (full.user_type[0] ?? null) : (full.user_type ?? null);
-
-            // 3. แนบสถานะโควต้าที่ใช้งานได้จริงเข้าไปใน session ของผู้ใช้
-            event.locals.user = {
-                id: full.id,
-                email: resolveEmail(full),
-                name: full.name ?? full.username,
-                username: full.username,
-                role: resolveRole(full),
-                roles: userRoles,
-                isAdmin,
-                isUnlimited,
-                user_type_id: userTypeId,
-                token: pb.authStore.token,
-
-                quota: {
-                    id: quotaRecord?.id ?? null,
-                    total: (quotaRecord?.expand?.Total_Quota?.Total_Quota ?? 0) + (quotaRecord?.Add_Quota ?? 0), // สิทธิ์ทั้งหมด (สิทธิ์หลัก + โบนัส)
-                    used: quotaRecord?.Use ?? 0           // จำนวนหน้าใช้ไปล่าสุด (เช่น 0)
-                }
-            };
-        } catch {
-            pb.authStore.clear();
-            event.locals.user = null;
+          console.log(
+            `[Hooks] Auto-created initial Quota record for user: ${userId} linking to Master Quota Tier: ${defaultMaster.id}`,
+          );
+        } catch (createErr) {
+          console.error(
+            "Failed to auto-create quota entry on login:",
+            createErr,
+          );
         }
-    } else {
-        event.locals.user = null;
-    }
+      }
 
-    const response = await resolve(event);
-    return response;
+      const userRoles = getUserRoles(full);
+      const isUnlimited = hasUnlimitedPrinting(full);
+      const isAdmin = canAccessAdmin(full);
+      const userTypeId = Array.isArray(full.user_type)
+        ? (full.user_type[0] ?? null)
+        : (full.user_type ?? null);
+
+      // 3. แนบสถานะโควต้าที่ใช้งานได้จริงเข้าไปใน session ของผู้ใช้
+      event.locals.user = {
+        id: full.id,
+        email: resolveEmail(full),
+        name: full.name ?? full.username,
+        username: full.username,
+        role: resolveRole(full),
+        roles: userRoles,
+        isAdmin,
+        isUnlimited,
+        user_type_id: userTypeId,
+        token: pb.authStore.token,
+
+        quota: {
+          id: quotaRecord?.id ?? null,
+          total:
+            (quotaRecord?.expand?.Total_Quota?.Total_Quota ?? 0) +
+            (quotaRecord?.Add_Quota ?? 0), // สิทธิ์ทั้งหมด (สิทธิ์หลัก + โบนัส)
+          used: quotaRecord?.Use ?? 0, // จำนวนหน้าใช้ไปล่าสุด (เช่น 0)
+        },
+      };
+    } catch {
+      pb.authStore.clear();
+      event.locals.user = null;
+    }
+  } else {
+    event.locals.user = null;
+  }
+
+  const response = await resolve(event);
+  return response;
 };
