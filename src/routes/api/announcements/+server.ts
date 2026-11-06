@@ -61,7 +61,7 @@ export const POST: RequestHandler = async (event) => {
     await adminPb.collection("announcement_reads").create({
       announcement,
       revision,
-      site: "printer",
+      site: "ytan4m3hbzj53zt", // Printer Server relation in services
       ...(user ? { user } : {}),
       viewer_hash,
     });

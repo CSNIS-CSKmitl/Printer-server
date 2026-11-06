@@ -28,7 +28,7 @@ export async function writeAdminAction(input: {
   try {
     const pb = await getAdminClient();
     await pb.collection("admin_actions").create({
-      service: "printer",
+      service: "ytan4m3hbzj53zt", // Printer Server relation in services
       action: input.action,
       actor: input.actorId,
       target_collection: "print_jobs",
@@ -57,7 +57,7 @@ export async function writeServiceAudit(
     const pb = await getAdminClient();
     const clientIp = sourceIp(event);
     await pb.collection("service_access_logs").create({
-      service: "printer-server",
+      service: "ytan4m3hbzj53zt", // Printer Server relation in services
       user: input.userId || undefined,
       source_ip: clientIp,
       method: event.request.method,
