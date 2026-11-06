@@ -34,7 +34,7 @@ function decorateQueuePositions(
 export const load: PageServerLoad = async ({ locals, url }) => {
 	// 🛡️ ป้องกันความปลอดภัย: เช็คว่าล็อกอินและเป็นแอดมินของระบบจริงไหม (super_admin หรือ head)
 	if (!locals.user) throw redirect(303, '/login');
-	if (!canAccessAdmin(locals.user)) throw redirect(303, '/user');
+	if (!locals.user || !canAccessAdmin(locals.user)) throw redirect(303, '/user');
 
 	const pb = locals.pb;
 	const loadedAt = new Date().toISOString();
@@ -98,7 +98,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
 	adjustQuota: async ({ request, locals }) => {
-		if (!canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
+		if (!locals.user || !canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
 
 		const data = await request.formData();
 		const userId = String(data.get('userId') ?? '');
@@ -124,7 +124,7 @@ export const actions: Actions = {
 	},
 
 	resetQuota: async ({ request, locals }) => {
-		if (!canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
+		if (!locals.user || !canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
 
 		const data = await request.formData();
 		const userId = String(data.get('userId') ?? '');
@@ -148,7 +148,7 @@ export const actions: Actions = {
 	},
 
 	bulkAdjustQuota: async ({ request, locals }) => {
-		if (!canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
+		if (!locals.user || !canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
 
 		const data = await request.formData();
 		const userIds = data
@@ -178,7 +178,7 @@ export const actions: Actions = {
 	},
 
 	bulkResetQuota: async ({ request, locals }) => {
-		if (!canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
+		if (!locals.user || !canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
 
 		const data = await request.formData();
 		const userIds = data
@@ -201,7 +201,7 @@ export const actions: Actions = {
 	},
 
 	suspend: async ({ request, locals }) => {
-		if (!canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
+		if (!locals.user || !canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
 
 		const data = await request.formData();
 		const jobId = String(data.get('jobId') ?? '');
@@ -235,7 +235,7 @@ export const actions: Actions = {
 	},
 
 	remove: async ({ request, locals }) => {
-		if (!canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
+		if (!locals.user || !canAccessAdmin(locals.user)) throw error(403, 'Forbidden');
 
 		const data = await request.formData();
 		const jobId = String(data.get('jobId') ?? '');

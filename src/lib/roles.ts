@@ -72,7 +72,7 @@ export function hasRole(record: any, ...targetRoles: string[]): boolean {
  * In printer-server, admin access to /admin requires:
  * super_admin OR head (or PB_ADMIN_EMAIL).
  */
-export function canAccessAdmin(record: any): boolean {
+export function canAccessAdmin(record: any): record is NonNullable<App.Locals['user']> {
 	if (!record) return false;
 	if (record.email === 'log@cskmitl.com') return true;
 	return hasRole(record, 'superadmin', 'super_admin', 'head');

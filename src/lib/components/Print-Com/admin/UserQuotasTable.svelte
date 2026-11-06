@@ -91,7 +91,7 @@
 						(u.role ?? "").toLowerCase().includes(q) ||
 						u.id.toLowerCase().includes(q) ||
 						(u.username ?? "").toLowerCase().includes(q) ||
-						(u.expand?.user_type?.type ?? "").toLowerCase().includes(q)
+						(Array.isArray(u.expand?.user_type) ? u.expand.user_type.map(t => t.type).join(" ") : (u.expand?.user_type?.type ?? "")).toLowerCase().includes(q)
 					);
 			  })
 			: [...users];
@@ -105,8 +105,8 @@
 				valA = a.email.toLowerCase();
 				valB = b.email.toLowerCase();
 			} else if (sortKey === "role") {
-				valA = (a.expand?.user_type?.type ?? "").toLowerCase();
-				valB = (b.expand?.user_type?.type ?? "").toLowerCase();
+				valA = (Array.isArray(a.expand?.user_type) ? a.expand.user_type.map(t => t.type).join(", ") : (a.expand?.user_type?.type ?? "")).toLowerCase();
+				valB = (Array.isArray(b.expand?.user_type) ? b.expand.user_type.map(t => t.type).join(", ") : (b.expand?.user_type?.type ?? "")).toLowerCase();
 			}
 
 			if (valA < valB) return sortOrder === "asc" ? -1 : 1;
@@ -300,7 +300,7 @@
 							</div>
 						</td>
 						<td class="px-6 py-4 text-secondary-app">
-							{u.expand?.user_type?.type ?? "—"}
+							{Array.isArray(u.expand?.user_type) ? u.expand.user_type.map(t => t.type).join(", ") : (u.expand?.user_type?.type ?? "—")}
 						</td>
 						<td class="px-6 py-4 text-secondary-app">
 							{#if ["000000000000002", "000000000000004", "000000000000005", "000000000000006", "000000000000007", "000000000000009", "000000000000010"].includes((Array.isArray(u.user_type) ? u.user_type[0] : (u.expand?.user_type?.id || u.user_type)) ?? "")}
