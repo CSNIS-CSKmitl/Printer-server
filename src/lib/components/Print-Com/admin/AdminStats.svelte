@@ -5,6 +5,7 @@
 		BarChart3,
 		CheckCircle2,
 		Clock3,
+		Download,
 		FileSpreadsheet,
 		FileText,
 		Printer,
@@ -110,6 +111,57 @@
 			timeZone: 'Asia/Bangkok'
 		}).format(new Date(ts));
 	}
+
+	function exportStatsCSV() {
+		const rangeObj = PRINT_TIME_RANGES.find((r) => r.id === range);
+		const rangeLabel = rangeObj ? rangeObj.label : range;
+		const nowStr = new Date().toLocaleString('th-TH');
+
+		let csv = '\uFEFF'; // UTF-8 BOM for Thai language in Excel
+		csv += `รายงานสถิติระบบพิมพ์ Print Server\n`;
+		csv += `ช่วงเวลาที่เลือก: ${rangeLabel}\n`;
+		csv += `ส่งออกข้อมูลเมื่อ: ${nowStr}\n\n`;
+
+		csv += `ภาพรวมสถิติ\n`;
+		csv += `รายการ,ค่า\n`;
+		csv += `งานพิมพ์ทั้งหมด,${computed.jobs}\n`;
+		csv += `พิมพ์สำเร็จ,${computed.completedJobs}\n`;
+		csv += `รอคิว / กำลังพิมพ์,${computed.activeJobs}\n`;
+		csv += `งานพิมพ์ผิดพลาด,${computed.failedJobs}\n`;
+		csv += `อัตราความล้มเหลว (%),${computed.failureRate}%\n`;
+		csv += `จำนวนหน้าทั้งหมดในช่วงที่เลือก,${computed.pagesInPeriod}\n`;
+		csv += `กระดาษที่ใช้เฉลี่ยต่อหน้า,${computed.avgPagesPerJob}\n`;
+		csv += `ผู้ใช้งานทั้งหมดในช่วงที่เลือก,${computed.users}\n\n`;
+
+		if (computed.topPrinters && computed.topPrinters.length > 0) {
+			csv += `ผู้ใช้ที่พิมพ์มากที่สุด (Top Users)\n`;
+			csv += `อันดับ,ชื่อผู้ใช้,อีเมล,จำนวนงานพิมพ์,จำนวนหน้า\n`;
+			computed.topPrinters.forEach((u, i) => {
+				const uName = (u.name || '-').replace(/"/g, '""');
+				const uEmail = (u.email || '-').replace(/"/g, '""');
+				csv += `${i + 1},"${uName}","${uEmail}",${u.jobs},${u.pages}\n`;
+			});
+			csv += `\n`;
+		}
+
+		if (computed.trend && computed.trend.length > 0) {
+			csv += `แนวโน้มงานพิมพ์ตามช่วงเวลา\n`;
+			csv += `ช่วงเวลา / วันที่,จำนวนงาน,จำนวนหน้า\n`;
+			computed.trend.forEach((t: any) => {
+				csv += `"${t.label}",${t.jobs},${t.pages}\n`;
+			});
+		}
+
+		const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.setAttribute('href', url);
+		link.setAttribute('download', `print-stats-${range}-${new Date().toISOString().slice(0, 10)}.csv`);
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+	}
 </script>
 
 <section class="mb-8" aria-labelledby="admin-stats-title">
@@ -161,13 +213,23 @@
 				{/each}
 			</div>
 
+			<button
+				type="button"
+				onclick={exportStatsCSV}
+				class="inline-flex items-center gap-1.5 rounded-lg border border-app bg-surface px-3 py-1.5 text-xs font-medium text-fg-app hover:bg-elevated cursor-pointer transition-colors"
+				title="ส่งออกรายงานสถิติเป็น CSV สำหรับ Excel"
+			>
+				<Download class="h-3.5 w-3.5 text-muted-app" />
+				<span>ส่งออก CSV</span>
+			</button>
+
 			{#if onRefresh}
 				<button
 					type="button"
 					onclick={onRefresh}
 					disabled={loading}
 					aria-label="รีเฟรชสถิติ"
-					class="inline-flex items-center gap-1.5 rounded-lg border border-app bg-surface px-3 py-1.5 text-xs font-medium text-fg-app hover:bg-elevated disabled:opacity-50"
+					class="inline-flex items-center gap-1.5 rounded-lg border border-app bg-surface px-3 py-1.5 text-xs font-medium text-fg-app hover:bg-elevated disabled:opacity-50 cursor-pointer"
 				>
 					<RefreshCw class="h-3.5 w-3.5 {loading ? 'animate-spin' : ''}" />
 					รีเฟรช
