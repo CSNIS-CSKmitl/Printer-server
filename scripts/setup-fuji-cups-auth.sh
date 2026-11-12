@@ -16,7 +16,7 @@ for bin in pdftopjlff pstopdfff; do
   fi
 done
 
-# Install pdftopjlff wrapper (handles PDF -> PJL with page count logging)
+# Install pdftopjlff wrapper (handles PDF -> PJL with page count logging & job name)
 cat << 'EOF' > "$FILTER_DIR/pdftopjlff"
 #!/bin/bash
 set -o pipefail
@@ -46,13 +46,19 @@ if [ -n "$PAGES" ] && [ "$PAGES" -gt 0 ]; then
     >&2 echo "PAGE: total $((PAGES * COPIES))"
 fi
 
-# Run original filter and inject PJL authentication headers
-"$ORIG_BIN" "$1" "$2" "$3" "$4" "$5" "$INFILE" | awk -v u="printerserver" -v p="cskmitl" '{
+# Clean job title for PJL
+JOB_TITLE="${3:-Print Job}"
+CLEAN_TITLE=$(echo "$JOB_TITLE" | tr -d '"\r\n\\')
+
+# Run original filter and inject PJL authentication & job name headers
+"$ORIG_BIN" "$1" "$2" "$3" "$4" "$5" "$INFILE" | awk -v u="printerserver" -v p="cskmitl" -v t="$CLEAN_TITLE" '{
     print $0
     if ($0 ~ /@PJL COMMENT Version:4.00/) {
+        print "@PJL SET JOBNAME=\"" t "\""
         print "@PJL SET USERNAME=\"" u "\""
         print "@PJL SET JOBATTR=\"@JOAU=" u "\""
         print "@PJL SET JOBATTR=\"@JOAP=" p "\""
+        print "@PJL SET JOBATTR=\"@JONA=" t "\""
     }
 }'
 STATUS=$?
@@ -80,12 +86,17 @@ else
     INFILE="$TMPFILE"
 fi
 
-"$ORIG_BIN" "$1" "$2" "$3" "$4" "$5" "$INFILE" | awk -v u="printerserver" -v p="cskmitl" '{
+JOB_TITLE="${3:-Print Job}"
+CLEAN_TITLE=$(echo "$JOB_TITLE" | tr -d '"\r\n\\')
+
+"$ORIG_BIN" "$1" "$2" "$3" "$4" "$5" "$INFILE" | awk -v u="printerserver" -v p="cskmitl" -v t="$CLEAN_TITLE" '{
     print $0
     if ($0 ~ /@PJL COMMENT Version:4.00/) {
+        print "@PJL SET JOBNAME=\"" t "\""
         print "@PJL SET USERNAME=\"" u "\""
         print "@PJL SET JOBATTR=\"@JOAU=" u "\""
         print "@PJL SET JOBATTR=\"@JOAP=" p "\""
+        print "@PJL SET JOBATTR=\"@JONA=" t "\""
     }
 }'
 STATUS=$?

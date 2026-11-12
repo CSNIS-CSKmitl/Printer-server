@@ -48,6 +48,19 @@
 			if (unsubscribeQuota) unsubscribeQuota();
 		};
 	});
+
+	// Auto-refresh while there are active jobs in the queue
+	$effect(() => {
+		const hasActive = data.jobs?.some(
+			(j) => j.status === "pending" || j.status === "processing"
+		);
+		if (hasActive) {
+			const interval = setInterval(() => {
+				invalidateAll();
+			}, 2000);
+			return () => clearInterval(interval);
+		}
+	});
 </script>
 
 <svelte:head>

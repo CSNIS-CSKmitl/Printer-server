@@ -47,6 +47,19 @@
 			if (unsubscribeQuota) unsubscribeQuota();
 		};
 	});
+
+	// Auto-refresh while there are active jobs in the queue
+	$effect(() => {
+		const hasActive = data.jobs?.some(
+			(j) => j.status === "pending" || j.status === "processing"
+		);
+		if (hasActive) {
+			const interval = setInterval(() => {
+				invalidateAll();
+			}, 2000);
+			return () => clearInterval(interval);
+		}
+	});
 </script>
 
 <div class="mx-auto max-w-7xl px-6 py-8">
