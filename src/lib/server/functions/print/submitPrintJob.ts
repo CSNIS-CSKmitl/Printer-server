@@ -55,6 +55,12 @@ export async function submitPrintJob(
   const nup = opts.pagesPerSheet ?? 1;
   if (nup > 1) {
     args.push("-o", `number-up=${nup}`, "-o", "number-up-layout=tbrl");
+    // Pass Fujifilm Apeos proprietary layout option for hardware combining
+    if (nup === 2) args.push("-o", "FFLayout=2up");
+    else if (nup === 4) args.push("-o", "FFLayout=4up");
+    else if (nup === 8) args.push("-o", "FFLayout=8up");
+    else if (nup === 16) args.push("-o", "FFLayout=16up");
+    else if (nup === 32) args.push("-o", "FFLayout=32up");
   }
   if (opts.color === "mono") args.push("-o", "print-color-mode=monochrome");
   args.push(opts.filePath);

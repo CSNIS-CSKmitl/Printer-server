@@ -7,6 +7,7 @@ import { updateJobStatus } from "./updateJobStatus";
 import { GRACE_PERIOD_MS } from "./constants";
 import { getPrintedPages } from "./getPrintedPages";
 import { checkCupsErrorLog, parsePrinterError } from "./printerErrors";
+import { getPrinterHardwareStatus } from "./getPrinterHardwareStatus";
 
 const execAsync = promisify(exec);
 
@@ -88,7 +89,7 @@ export async function checkPrintJobsStatus(): Promise<void> {
           }
         }
       } else {
-        // The job is no longer in the active queue (meaning it has completed or failed)
+        // The job is no longer in the active queue (meaning it has completed or failed in CUPS spooler)
         const matchingBlock = allBlocks.find((block) =>
           block.trim().startsWith(jobIdentifier),
         );
@@ -195,11 +196,30 @@ export async function checkPrintJobsStatus(): Promise<void> {
             }
           } else {
             // เช็คประวัติการพิมพ์จริงทันทีก่อนใช้ Grace Period
-            // หากพิมพ์สำเร็จครบจำนวนหน้าแล้ว ให้ตั้งเสร็จสมบูรณ์ (Completed) ทันทีเพื่อปิดรูรั่วปุ่มกดยกเลิก
             const { printed, isLogEnabled } = await getPrintedPages(
               job.cups_job_id,
             );
             if (isLogEnabled && printed >= job.pages) {
+              // Check real hardware status to avoid marking completed while sheets are still physically printing
+              const hw = await getPrinterHardwareStatus(job.printer_name);
+              if (hw && hw.state === "processing") {
+                if (job.status !== "processing") {
+                  await updateJobStatus(pb, job, "processing");
+                }
+                console.log(
+                  `[Monitor] Job ${job.id} (CUPS #${job.cups_job_id}): Spool complete (${printed}/${job.pages} pages), waiting for physical printer (hardware is processing)...`,
+                );
+                continue;
+              } else if (hw && hw.state === "stopped") {
+                console.warn(
+                  `[Monitor] Job ${job.id} (CUPS #${job.cups_job_id}): Physical printer is stopped! Reason: ${hw.alertMessage || hw.reasons.join(", ")}`,
+                );
+                if (job.status !== "processing") {
+                  await updateJobStatus(pb, job, "processing");
+                }
+                continue;
+              }
+
               inactiveTimestamps.delete(job.id);
               await updateJobStatus(pb, job, "completed");
             } else {
@@ -227,7 +247,11 @@ export async function checkPrintJobsStatus(): Promise<void> {
                         printed,
                       );
                     } else {
-                      // พิมพ์ครบทุกหน้าเรียบร้อย
+                      // พิมพ์ครบทุกหน้าเรียบร้อย ตรวจสอบสถานะเครื่องพิมพ์จริง
+                      const hw = await getPrinterHardwareStatus(job.printer_name);
+                      if (hw && (hw.state === "processing" || hw.state === "stopped")) {
+                        continue;
+                      }
                       await updateJobStatus(pb, job, "completed");
                     }
                   } else {
@@ -274,6 +298,10 @@ export async function checkPrintJobsStatus(): Promise<void> {
               if (isLogEnabled) {
                 const toRefund = Math.max(0, job.pages - printed);
                 if (printed > 0) {
+                  const hw = await getPrinterHardwareStatus(job.printer_name);
+                  if (hw && (hw.state === "processing" || hw.state === "stopped")) {
+                    continue;
+                  }
                   await updateJobStatus(
                     pb,
                     job,
