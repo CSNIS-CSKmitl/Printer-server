@@ -2,7 +2,12 @@ import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { getAdminClient } from "../pocketbase/getAdminClient";
 import type { PrintJobsRecord } from "../../pocketbase";
-import { inactiveTimestamps, missingJobTimestamps } from "./timestamps";
+import {
+  inactiveTimestamps,
+  missingJobTimestamps,
+  jobSpoolTimestamps,
+  jobHardwareSeenProcessing,
+} from "./timestamps";
 import { updateJobStatus } from "./updateJobStatus";
 import { GRACE_PERIOD_MS } from "./constants";
 import { getPrintedPages } from "./getPrintedPages";
@@ -70,7 +75,6 @@ export async function checkPrintJobsStatus(): Promise<void> {
 
       if (isActive) {
         // The job is still in the active queue
-        // If it was temporarily in inactive state, clear it
         inactiveTimestamps.delete(job.id);
 
         const matchingBlock = allBlocks.find((block) =>
@@ -90,6 +94,10 @@ export async function checkPrintJobsStatus(): Promise<void> {
         }
       } else {
         // The job is no longer in the active queue (meaning it has completed or failed in CUPS spooler)
+        if (!jobSpoolTimestamps.has(job.id)) {
+          jobSpoolTimestamps.set(job.id, Date.now());
+        }
+
         const matchingBlock = allBlocks.find((block) =>
           block.trim().startsWith(jobIdentifier),
         );
@@ -111,8 +119,6 @@ export async function checkPrintJobsStatus(): Promise<void> {
         }
 
         if (errorInfo.isError && errorInfo.message) {
-          inactiveTimestamps.delete(job.id);
-          missingJobTimestamps.delete(job.id);
           console.log(
             `[Monitor] Job ${job.id} (CUPS #${job.cups_job_id}) failed with error: "${errorInfo.message}". Auto-refunding all ${job.pages} pages.`,
           );
@@ -129,15 +135,11 @@ export async function checkPrintJobsStatus(): Promise<void> {
 
         if (matchingBlock) {
           if (blockLower.includes("cancel")) {
-            inactiveTimestamps.delete(job.id);
             // เครื่องปริ้นยกเลิกงาน ตรวจสอบหน้าจริงที่พิมพ์ออกมาเพื่อหักเฉพาะส่วนนั้นและคืนที่เหลือ
             const { printed, isLogEnabled } = await getPrintedPages(
               job.cups_job_id,
             );
             if (isLogEnabled) {
-              // If printed >= job.pages but the job was canceled at the printer,
-              // page_log only recorded spooled pages before the printer canceled.
-              // Auto-refund all pages.
               const toRefund =
                 printed >= job.pages
                   ? job.pages
@@ -166,7 +168,6 @@ export async function checkPrintJobsStatus(): Promise<void> {
             blockLower.includes("abort") ||
             blockLower.includes("error")
           ) {
-            inactiveTimestamps.delete(job.id);
             const { printed, isLogEnabled } = await getPrintedPages(
               job.cups_job_id,
             );
@@ -202,25 +203,38 @@ export async function checkPrintJobsStatus(): Promise<void> {
             if (isLogEnabled && printed >= job.pages) {
               // Check real hardware status to avoid marking completed while sheets are still physically printing
               const hw = await getPrinterHardwareStatus(job.printer_name);
-              if (hw && hw.state === "processing") {
-                if (job.status !== "processing") {
-                  await updateJobStatus(pb, job, "processing");
+              if (hw) {
+                if (hw.state === "processing") {
+                  jobHardwareSeenProcessing.add(job.id);
+                  if (job.status !== "processing") {
+                    await updateJobStatus(pb, job, "processing");
+                  }
+                  console.log(
+                    `[Monitor] Job ${job.id} (CUPS #${job.cups_job_id}): Spool complete (${printed}/${job.pages} pages), waiting for physical printer (hardware is actively printing)...`,
+                  );
+                  continue;
+                } else if (hw.state === "stopped") {
+                  console.warn(
+                    `[Monitor] Job ${job.id} (CUPS #${job.cups_job_id}): Physical printer is stopped! Reason: ${hw.alertMessage || hw.reasons.join(", ")}`,
+                  );
+                  if (job.status !== "processing") {
+                    await updateJobStatus(pb, job, "processing");
+                  }
+                  continue;
+                } else if (hw.state === "idle") {
+                  const spoolTime = jobSpoolTimestamps.get(job.id) ?? Date.now();
+                  const timeSinceSpool = Date.now() - spoolTime;
+                  // If we haven't seen processing yet and less than 4 seconds have passed since spool,
+                  // wait for the printer hardware to wake up and start printing!
+                  if (!jobHardwareSeenProcessing.has(job.id) && timeSinceSpool < 4000) {
+                    if (job.status !== "processing") {
+                      await updateJobStatus(pb, job, "processing");
+                    }
+                    continue;
+                  }
                 }
-                console.log(
-                  `[Monitor] Job ${job.id} (CUPS #${job.cups_job_id}): Spool complete (${printed}/${job.pages} pages), waiting for physical printer (hardware is processing)...`,
-                );
-                continue;
-              } else if (hw && hw.state === "stopped") {
-                console.warn(
-                  `[Monitor] Job ${job.id} (CUPS #${job.cups_job_id}): Physical printer is stopped! Reason: ${hw.alertMessage || hw.reasons.join(", ")}`,
-                );
-                if (job.status !== "processing") {
-                  await updateJobStatus(pb, job, "processing");
-                }
-                continue;
               }
 
-              inactiveTimestamps.delete(job.id);
               await updateJobStatus(pb, job, "completed");
             } else {
               // หากยังพิมพ์ไม่ครบ หรือปิดการใช้ log ไว้ ให้เข้าสู่ระบบตรวจสอบ Grace period
@@ -232,8 +246,6 @@ export async function checkPrintJobsStatus(): Promise<void> {
               } else {
                 const elapsed = Date.now() - inactiveTimestamps.get(job.id)!;
                 if (elapsed > GRACE_PERIOD_MS) {
-                  inactiveTimestamps.delete(job.id);
-
                   if (isLogEnabled) {
                     if (printed < job.pages) {
                       // พิมพ์ได้บางส่วนแล้วแท่นหยุด/ยกเลิกกลางคัน คืนสิทธิ์หน้าที่เหลือ และปรับเลขหน้าในประวัติเป็นพิมพ์จริง
@@ -249,8 +261,19 @@ export async function checkPrintJobsStatus(): Promise<void> {
                     } else {
                       // พิมพ์ครบทุกหน้าเรียบร้อย ตรวจสอบสถานะเครื่องพิมพ์จริง
                       const hw = await getPrinterHardwareStatus(job.printer_name);
-                      if (hw && (hw.state === "processing" || hw.state === "stopped")) {
-                        continue;
+                      if (hw) {
+                        if (hw.state === "processing") {
+                          jobHardwareSeenProcessing.add(job.id);
+                          continue;
+                        } else if (hw.state === "stopped") {
+                          continue;
+                        } else if (hw.state === "idle") {
+                          const spoolTime = jobSpoolTimestamps.get(job.id) ?? Date.now();
+                          const timeSinceSpool = Date.now() - spoolTime;
+                          if (!jobHardwareSeenProcessing.has(job.id) && timeSinceSpool < 4000) {
+                            continue;
+                          }
+                        }
                       }
                       await updateJobStatus(pb, job, "completed");
                     }
@@ -264,8 +287,6 @@ export async function checkPrintJobsStatus(): Promise<void> {
           }
         } else {
           // If the job is completely missing from CUPS queue and history:
-          // We start a grace period from when we first notice it is missing,
-          // to give CUPS time to write to the page_log.
           if (!missingJobTimestamps.has(job.id)) {
             missingJobTimestamps.set(job.id, Date.now());
             console.log(
@@ -274,7 +295,6 @@ export async function checkPrintJobsStatus(): Promise<void> {
           } else {
             const elapsed = Date.now() - missingJobTimestamps.get(job.id)!;
             if (elapsed > GRACE_PERIOD_MS) {
-              missingJobTimestamps.delete(job.id);
               console.log(
                 `[Monitor] Job ${job.id} (CUPS #${job.cups_job_id}) has been missing from lpstat for ${Math.round(elapsed / 1000)}s. Verifying via page_log...`,
               );
@@ -299,8 +319,19 @@ export async function checkPrintJobsStatus(): Promise<void> {
                 const toRefund = Math.max(0, job.pages - printed);
                 if (printed > 0) {
                   const hw = await getPrinterHardwareStatus(job.printer_name);
-                  if (hw && (hw.state === "processing" || hw.state === "stopped")) {
-                    continue;
+                  if (hw) {
+                    if (hw.state === "processing") {
+                      jobHardwareSeenProcessing.add(job.id);
+                      continue;
+                    } else if (hw.state === "stopped") {
+                      continue;
+                    } else if (hw.state === "idle") {
+                      const spoolTime = jobSpoolTimestamps.get(job.id) ?? Date.now();
+                      const timeSinceSpool = Date.now() - spoolTime;
+                      if (!jobHardwareSeenProcessing.has(job.id) && timeSinceSpool < 4000) {
+                        continue;
+                      }
+                    }
                   }
                   await updateJobStatus(
                     pb,

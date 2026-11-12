@@ -36,7 +36,7 @@ export function parseIppPrinterAttributes(stdout) {
     if (stateMatch) {
       const s = stateMatch[1].toLowerCase();
       if (s === "idle" || s === "processing" || s === "stopped") {
-        state = s;
+        state = /** @type {"idle" | "processing" | "stopped"} */ (s);
       }
     }
 
@@ -62,11 +62,15 @@ export function parseIppPrinterAttributes(stdout) {
   const alertStr = (alertMessage ?? "").toLowerCase();
   const combined = `${reasonsStr} ${alertStr}`;
 
-  const isJam = combined.includes("jam");
+  // Only consider fatal jam / out-of-paper / cover-open if printer engine is actually stopped
+  const isStopped = state === "stopped";
+  const isJam = isStopped && combined.includes("jam");
   const isOutOfPaper =
-    combined.includes("media-empty") || combined.includes("out of paper");
+    isStopped &&
+    (combined.includes("media-empty") || combined.includes("out of paper"));
   const isCoverOpen =
-    combined.includes("cover-open") || combined.includes("door-open");
+    isStopped &&
+    (combined.includes("cover-open") || combined.includes("door-open"));
 
   return {
     state,

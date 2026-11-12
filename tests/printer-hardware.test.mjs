@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseIppPrinterAttributes } from "../src/lib/server/printer-hardware.mjs";
 
-test("detects idle state with warnings", () => {
+test("detects idle state with warnings (does not flag outOfPaper if idle)", () => {
   const sample = `
         printer-name (nameWithoutLanguage) = 192.168.1.2
         printer-state (enum) = idle
@@ -13,7 +13,7 @@ test("detects idle state with warnings", () => {
   const res = parseIppPrinterAttributes(sample);
   assert.equal(res.state, "idle");
   assert.equal(res.isJam, false);
-  assert.equal(res.isOutOfPaper, true);
+  assert.equal(res.isOutOfPaper, false); // Idle means engine is not stopped
   assert.equal(res.isCoverOpen, false);
   assert.match(res.alertMessage, /Tray 1 is out of paper/);
 });
@@ -42,7 +42,18 @@ test("detects stopped state with paper jam", () => {
   assert.match(res.alertMessage, /Paper jam/);
 });
 
-test("detects cover open state", () => {
+test("detects stopped state with out of paper", () => {
+  const sample = `
+        printer-state (enum) = stopped
+        printer-state-reasons (1setOf keyword) = media-empty
+        printer-alert-description (1setOf textWithoutLanguage) = 071-451 Out of paper.
+  `;
+  const res = parseIppPrinterAttributes(sample);
+  assert.equal(res.state, "stopped");
+  assert.equal(res.isOutOfPaper, true);
+});
+
+test("detects cover open state when stopped", () => {
   const sample = `
         printer-state (enum) = stopped
         printer-state-reasons (1setOf keyword) = door-open

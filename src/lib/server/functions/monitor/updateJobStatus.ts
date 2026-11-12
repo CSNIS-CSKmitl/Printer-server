@@ -1,12 +1,17 @@
-import type PocketBase from "pocketbase";
-import type { PrintJobsRecord } from "../../pocketbase";
+import type { ClientResponseError } from "pocketbase";
+import type { TypedPocketBase, PrintJobsRecord } from "../../pocketbase";
 import { refundQuota } from "../quota/refundQuota";
-import { inactiveTimestamps, missingJobTimestamps } from "./timestamps";
+import {
+  inactiveTimestamps,
+  missingJobTimestamps,
+  jobSpoolTimestamps,
+  jobHardwareSeenProcessing,
+} from "./timestamps";
 
 export async function updateJobStatus(
-  pb: PocketBase,
+  pb: TypedPocketBase,
   job: PrintJobsRecord,
-  newStatus: "completed" | "failed" | "processing" | "pending",
+  newStatus: "pending" | "processing" | "completed" | "failed",
   errorMessage?: string,
   refundPages?: number,
   actualPages?: number,
@@ -16,7 +21,7 @@ export async function updateJobStatus(
   );
 
   try {
-    const updatePayload: any = {
+    const updatePayload: Partial<PrintJobsRecord> = {
       status: newStatus,
       error_message: errorMessage || null,
     };
@@ -56,5 +61,7 @@ export async function updateJobStatus(
   if (newStatus === "completed" || newStatus === "failed") {
     inactiveTimestamps.delete(job.id);
     missingJobTimestamps.delete(job.id);
+    jobSpoolTimestamps.delete(job.id);
+    jobHardwareSeenProcessing.delete(job.id);
   }
 }
