@@ -54,6 +54,12 @@ You can preview the production build with `npm run preview`.
 
 /api/announcements ส่งเฉพาะประกาศ published ที่อยู่ในช่วงเวลาและเลือกเว็บนี้ ข้อความเป็น plain text ลิงก์เฉพาะ HTTP/HTTPS ไม่มี localStorage สำหรับการรับทราบ หากยังไม่มี collection หรือโหลดครั้งแรกไม่ได้ จะใช้ประกาศน้ำท่วมสำรองใน src/lib/flood-announcement.ts (enabled: false ปิดสำรองได้) ถ้าเคยโหลดสำเร็จจะใช้ผลรอบล่าสุดระหว่างการเชื่อมต่อขัดข้อง
 
+## การตั้งค่าเครื่องพิมพ์ Fujifilm / Fuji Xerox (CUPS Authentication)
+
+คู่มือการตั้งค่าแก้ปัญหา Authentication Error และการนับหน้าพิมพ์จริงสำหรับเครื่องพิมพ์ตระกูล Apeos:
+- [คู่มือการตั้งค่า CUPS Filter & User Authentication](docs/FUJIFILM_CUPS_AUTH.md)
+- สคริปต์ติดตั้งอัตโนมัติ: `scripts/setup-fuji-cups-auth.sh`
+
 ## GitHub Actions deploy
 
 วิธีตั้งค่า SSH, ENV_FILE, PM2 และ deploy อัตโนมัติ: [คู่มือ deploy](https://github.com/CSNIS-CSKmitl/Docs/blob/main/Projects/printer-server/docs/DEPLOY.md)
