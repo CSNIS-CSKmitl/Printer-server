@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import {
 		AlertTriangle,
 		Award,
@@ -183,7 +183,7 @@
 			>
 				<span
 					class="h-2 w-2 rounded-full {realtime
-						? 'animate-pulse bg-emerald-500'
+						? ' bg-emerald-500'
 						: 'bg-muted-app'}"
 				></span>
 				{realtime ? 'Realtime' : 'Snapshot'}
@@ -281,7 +281,7 @@
 					type="button"
 					onclick={() => selectDrilldown(card.key)}
 					aria-pressed={selected}
-					class="text-left rounded-xl border p-4 shadow-sm transition-all focus-visible:outline-2 focus-visible:outline-accent {selected
+					class="text-left rounded-xl border p-4 shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-accent {selected
 						? 'border-accent bg-elevated ring-2 ring-accent/30'
 						: 'border-app bg-surface hover:border-accent/50'}"
 				>
@@ -403,14 +403,14 @@
 						<div class="flex flex-1 flex-col items-center gap-1.5">
 							<div class="flex h-24 w-full items-end justify-center gap-1">
 								<div
-									class="w-3 rounded-t bg-accent transition-all"
+									class="w-3 rounded-t bg-accent transition-colors"
 									style="height: {point.pages > 0 ? pageH : 3}px; opacity: {point.pages > 0
 										? 1
 										: 0.25}"
 									title="{point.label}: {point.pages} หน้า"
 								></div>
 								<div
-									class="w-3 rounded-t bg-emerald-500 transition-all"
+									class="w-3 rounded-t bg-emerald-500 transition-colors"
 									style="height: {point.jobs > 0 ? jobH : 3}px; opacity: {point.jobs > 0
 										? 1
 										: 0.25}"

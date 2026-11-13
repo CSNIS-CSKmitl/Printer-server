@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { deserialize, applyAction } from "$app/forms";
 	import { invalidateAll } from "$app/navigation";
 	import {
@@ -496,7 +496,7 @@
 								{#if isProcessing}
 									<span class="relative flex h-2 w-2">
 										<span
-											class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"
+											class=" absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"
 										></span>
 										<span
 											class="relative inline-flex rounded-full h-2 w-2 bg-accent"
@@ -505,7 +505,7 @@
 									กำลังประมวลผลไฟล์และจัดทำคิวพิมพ์...
 								{:else}
 									<Upload
-										class="h-3.5 w-3.5 animate-bounce text-accent"
+										class="h-3.5 w-3.5 text-accent"
 									/>
 									กำลังอัปโหลดไฟล์...
 								{/if}
@@ -518,12 +518,12 @@
 							class="w-full overflow-hidden rounded-full bg-elevated h-2"
 						>
 							<div
-								class="h-full rounded-full bg-accent transition-all duration-300 ease-out shadow-[0_0_8px_rgba(37,99,235,0.4)]"
+								class="h-full rounded-full bg-accent transition-colors duration-300 ease-out shadow-[0_0_8px_rgba(37,99,235,0.4)]"
 								style="width: {uploadProgress}%"
 							></div>
 						</div>
 						<p
-							class="mt-2 text-center text-xs text-muted-app animate-pulse"
+							class="mt-2 text-center text-xs text-muted-app"
 						>
 							{#if isProcessing}
 								กรุณารอสักครู่

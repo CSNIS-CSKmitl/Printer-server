@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { Check, Copy, ExternalLink, X } from "@lucide/svelte";
 	import Discord from "$lib/components/icons/Discord.svelte";
 	import { createQrSvg } from "$lib/utils/qrcodegen";
@@ -49,7 +49,7 @@
 		}}
 	>
 		<div
-			class="relative w-full max-w-sm overflow-hidden rounded-2xl border border-app bg-surface p-6 shadow-2xl transition-all duration-200 animate-in fade-in zoom-in-95 focus:outline-none"
+			class="relative w-full max-w-sm overflow-hidden rounded-2xl border border-app bg-surface p-6 shadow-2xl transition-colors duration-200 animate-in fade-in zoom-in-95 focus:outline-none"
 			role="dialog"
 			aria-modal="true"
 			tabindex="-1"

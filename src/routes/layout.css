@@ -1,47 +1,66 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Thai:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
-/* ─── Design tokens ────────────────────────────────────────────────────────
- *
- * Light-only palette. Tailwind v4 reads `--color-*`, `--font-*`, etc.
- * inside `@theme` and generates the matching utilities (`bg-app`,
- * `text-accent`, `font-mono-app`, …).
- *
- * Palette is intentionally grounded — neutral surfaces, single blue
- * accent. Looks like a real internal admin tool, not a marketing site.
- */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-app: #f7f7f8;
-  --color-surface: #ffffff;
-  --color-elevated: #f1f2f4;
-  --color-strong-app: #e2e4e8;
-  --color-muted-app: #71717a;
-  --color-secondary-app: #4b5563;
-  --color-fg-app: #18181b;
-  --color-accent: #2563eb;
+  --color-app: var(--bg);
+  --color-surface: var(--surface);
+  --color-elevated: var(--raised);
+  --color-strong-app: var(--border);
+  --color-muted-app: var(--text-muted);
+  --color-secondary-app: var(--text-secondary);
+  --color-fg-app: var(--text);
+  --color-accent: var(--accent);
   --color-accent-soft: rgba(37, 99, 235, 0.08);
-  --color-danger: #dc2626;
-  --color-success: #16a34a;
-  --color-warning: #d97706;
+  --color-danger: var(--negative);
+  --color-success: var(--positive);
+  --color-warning: var(--warning);
 
-  --font-sans-app:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, "Noto Sans Thai", "Noto Sans", sans-serif;
-  --font-mono-app:
-    ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-sans-app: "Inter", "Noto Sans Thai", ui-sans-serif, system-ui, sans-serif;
+  --font-mono-app: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 :root {
-  --danger: var(--color-danger);
-  --success: var(--color-success);
-  --warning: var(--color-warning);
-  --fg: var(--color-fg-app);
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --raised: #f4f4f5;
+  --border: rgba(23, 23, 23, 0.08);
+  --text: #171717;
+  --text-secondary: #525252;
+  --text-muted: #737373;
+  --accent: #2563eb;
+  --accent-ink: #1d4ed8;
+  --positive: #16a34a;
+  --negative: #dc2626;
+  --warning: #d97706;
+
+  --danger: var(--negative);
+  --success: var(--positive);
+  --fg: var(--text);
+}
+
+.dark {
+  --bg: #141415;
+  --surface: #19191b;
+  --raised: #232325;
+  --border: rgba(237, 237, 237, 0.08);
+  --text: #ededed;
+  --text-secondary: #a1a1a6;
+  --text-muted: #85858b;
+  --accent: #3b82f6;
+  --accent-ink: #60a5fa;
+  --positive: #4cc38a;
+  --negative: #e5484d;
+  --warning: #f59e0b;
 }
 
 html,
 body {
-  color: var(--fg);
+  background-color: var(--bg);
+  color: var(--text);
   font-family: var(--font-sans-app);
+  -webkit-font-smoothing: antialiased;
 }
 
 h1,
@@ -51,4 +70,17 @@ h4,
 h5,
 h6 {
   font-family: var(--font-sans-app);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
