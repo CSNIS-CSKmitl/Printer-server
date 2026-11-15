@@ -1,5 +1,5 @@
 import type { ClientResponseError } from "pocketbase";
-import type { TypedPocketBase, PrintJobsRecord } from "../../pocketbase";
+import type { AppPocketBase, PrintJobsRecord } from "../../pocketbase";
 import { refundQuota } from "../quota/refundQuota";
 import {
   inactiveTimestamps,
@@ -9,7 +9,7 @@ import {
 } from "./timestamps";
 
 export async function updateJobStatus(
-  pb: TypedPocketBase,
+  pb: AppPocketBase,
   job: PrintJobsRecord,
   newStatus: "pending" | "processing" | "completed" | "failed",
   errorMessage?: string,
