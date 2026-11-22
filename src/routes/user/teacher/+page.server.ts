@@ -8,6 +8,7 @@ import {
 } from "$lib/server/pocketbase";
 import { safeUnlink } from "$lib/server/functions/print/safeUnlink";
 import { submitPrintJob } from "$lib/server/functions/print/submitPrintJob";
+import { recordInitialPrinterCounter } from "$lib/server/functions/monitor/getPrinterHardwareStatus";
 import { cancelPrintJob } from "$lib/server/functions/print/cancelPrintJob";
 import { getPageCountOfFile } from "$lib/server/functions/print/getPageCountOfFile";
 import { deductQuota } from "$lib/server/functions/quota/deductQuota";
@@ -219,10 +220,15 @@ export const actions: Actions = {
         .create<PrintJobsRecord>(jobPayload);
       jobRecordId = created.id;
 
+      await recordInitialPrinterCounter(
+        created.id,
+        serverEnv.teacherPrinterName,
+      );
+
       const result = await submitPrintJob({
         filePath: tempPath,
         copies,
-        title: `${locals.user.email} — ${safeName}`,
+        title: `${created.id} ${locals.user.email} - ${safeName}`,
         sides,
         pagesPerSheet,
         color,

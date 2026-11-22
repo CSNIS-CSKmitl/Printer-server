@@ -12,7 +12,10 @@ import { updateJobStatus } from "./updateJobStatus";
 import { GRACE_PERIOD_MS } from "./constants";
 import { getPrintedPages } from "./getPrintedPages";
 import { checkCupsErrorLog, parsePrinterError } from "./printerErrors";
-import { getPrinterHardwareStatus } from "./getPrinterHardwareStatus";
+import {
+  getPrinterHardwareStatus,
+  verifyPrinterJobOutcome,
+} from "./getPrinterHardwareStatus";
 
 const execAsync = promisify(exec);
 
@@ -63,6 +66,48 @@ export async function checkPrintJobsStatus(): Promise<void> {
 
     // Split output into detailed job blocks (each block starts with alphanumeric character, e.g., printer name)
     const allBlocks = allOutput.split(/^(?=[A-Za-z0-9])/m).filter(Boolean);
+
+    // Count how many active jobs target each printer (used to guard SNMP counter delta checks)
+    const activeCountByPrinter = new Map<string, number>();
+    for (const j of activeJobs) {
+      activeCountByPrinter.set(
+        j.printer_name,
+        (activeCountByPrinter.get(j.printer_name) ?? 0) + 1,
+      );
+    }
+
+    const finalizeJobAfterHardwareIdle = async (
+      job: PrintJobsRecord,
+      fallbackRefundPages?: number,
+      fallbackActualPages?: number,
+    ) => {
+      const samePrinterCount = activeCountByPrinter.get(job.printer_name) ?? 1;
+      const verification = await verifyPrinterJobOutcome(job, samePrinterCount);
+      if (verification.failed) {
+        const toRefund = Math.max(0, job.pages - verification.actualPages);
+        console.warn(
+          `[Monitor] Job ${job.id} (CUPS #${job.cups_job_id}) failed physical printer verification: ${verification.errorMessage}. Refunding ${toRefund} pages.`,
+        );
+        await updateJobStatus(
+          pb,
+          job,
+          "failed",
+          verification.errorMessage,
+          toRefund,
+          verification.actualPages,
+        );
+        return;
+      }
+
+      await updateJobStatus(
+        pb,
+        job,
+        "completed",
+        undefined,
+        fallbackRefundPages,
+        fallbackActualPages,
+      );
+    };
 
     for (const job of activeJobs) {
       if (job.cups_job_id === null || job.cups_job_id <= 0) {
@@ -235,7 +280,7 @@ export async function checkPrintJobsStatus(): Promise<void> {
                 }
               }
 
-              await updateJobStatus(pb, job, "completed");
+              await finalizeJobAfterHardwareIdle(job);
             } else {
               // หากยังพิมพ์ไม่ครบ หรือปิดการใช้ log ไว้ ให้เข้าสู่ระบบตรวจสอบ Grace period
               if (!inactiveTimestamps.has(job.id)) {
@@ -275,11 +320,11 @@ export async function checkPrintJobsStatus(): Promise<void> {
                           }
                         }
                       }
-                      await updateJobStatus(pb, job, "completed");
+                      await finalizeJobAfterHardwareIdle(job);
                     }
                   } else {
-                    // หากระบบปิดการบันทึก log ไว้ ให้ fallback เป็นสำเร็จสมบูรณ์ตามสเตตัส CUPS
-                    await updateJobStatus(pb, job, "completed");
+                    // หากระบบปิดการบันทึก log ไว้ ให้ตรวจสอบผลพิมพ์จริงก่อน fallback เป็นสำเร็จ
+                    await finalizeJobAfterHardwareIdle(job);
                   }
                 }
               }
@@ -333,14 +378,7 @@ export async function checkPrintJobsStatus(): Promise<void> {
                       }
                     }
                   }
-                  await updateJobStatus(
-                    pb,
-                    job,
-                    "completed",
-                    undefined,
-                    toRefund,
-                    printed,
-                  );
+                  await finalizeJobAfterHardwareIdle(job, toRefund, printed);
                 } else {
                   await updateJobStatus(
                     pb,
@@ -353,7 +391,7 @@ export async function checkPrintJobsStatus(): Promise<void> {
                 }
               } else {
                 // Fallback if log is disabled
-                await updateJobStatus(pb, job, "completed");
+                await finalizeJobAfterHardwareIdle(job);
               }
             }
           }

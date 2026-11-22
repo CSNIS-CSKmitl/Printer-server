@@ -16,12 +16,14 @@ for bin in pdftopjlff pstopdfff; do
   fi
 done
 
-# Install pdftopjlff wrapper (handles PDF -> PJL with page count logging, N-up translation & job name)
+# Install pdftopjlff wrapper (handles PDF -> PJL with page count logging, N-up translation & binary-safe PJL auth injection)
 cat << 'EOF' > "$FILTER_DIR/pdftopjlff"
 #!/bin/bash
 set -o pipefail
 
 ORIG_BIN="/usr/lib/cups/filter/pdftopjlff.orig"
+FUJI_U="__FUJI_USER__"
+FUJI_P="__FUJI_PASS__"
 
 if [ -n "$6" ]; then
     INFILE="$6"
@@ -74,19 +76,36 @@ fi
 
 # Clean job title for PJL
 JOB_TITLE="${3:-Print Job}"
-CLEAN_TITLE=$(echo "$JOB_TITLE" | tr -d '"\r\n\\')
+CLEAN_TITLE=$(printf '%s' "$JOB_TITLE" | tr -d '"\r\n\\')
 
-# Run original filter with enhanced options and inject PJL authentication & job name headers
-"$ORIG_BIN" "$1" "$2" "$3" "$4" "$OPTIONS" "$INFILE" | awk -v u="printerserver" -v p="cskmitl" -v t="$CLEAN_TITLE" '{
-    print $0
-    if ($0 ~ /@PJL COMMENT Version:4.00/) {
-        print "@PJL SET JOBNAME=\"" t "\""
-        print "@PJL SET USERNAME=\"" u "\""
-        print "@PJL SET JOBATTR=\"@JOAU=" u "\""
-        print "@PJL SET JOBATTR=\"@JOAP=" p "\""
-        print "@PJL SET JOBATTR=\"@JONA=" t "\""
-    }
-}'
+# Run original filter and inject PJL auth & job name headers in binary-safe mode
+# (Never pipe raw PDF binary streams through text-mode awk, which can corrupt NUL/non-UTF-8 bytes and trigger 016-751)
+"$ORIG_BIN" "$1" "$2" "$3" "$4" "$OPTIONS" "$INFILE" | FUJI_U="$FUJI_U" FUJI_P="$FUJI_P" FUJI_T="$CLEAN_TITLE" python3 -c '
+import os, sys, shutil
+u = os.environ["FUJI_U"].encode("ascii", "ignore")
+p = os.environ["FUJI_P"].encode("ascii", "ignore")
+t = os.environ["FUJI_T"].encode("utf-8", "ignore")
+marker = b"@PJL COMMENT Version:4.00"
+inject = (
+    b"@PJL SET JOBNAME=\"" + t + b"\"\r\n"
+    b"@PJL SET USERNAME=\"" + u + b"\"\r\n"
+    b"@PJL SET JOBATTR=\"@JOAU=" + u + b"\"\r\n"
+    b"@PJL SET JOBATTR=\"@JOAP=" + p + b"\"\r\n"
+    b"@PJL SET JOBATTR=\"@JONA=" + t + b"\"\r\n"
+)
+inp = sys.stdin.buffer
+out = sys.stdout.buffer
+while True:
+    line = inp.readline()
+    if not line:
+        break
+    out.write(line)
+    if marker in line:
+        out.write(inject)
+        shutil.copyfileobj(inp, out, 65536)
+        break
+out.flush()
+'
 STATUS=$?
 
 if [ -n "$TMPFILE" ]; then
@@ -96,12 +115,14 @@ fi
 exit $STATUS
 EOF
 
-# Install pstopdfff wrapper (handles PS -> PJL)
+# Install pstopdfff wrapper (handles PS -> PJL with binary-safe PJL auth injection)
 cat << 'EOF' > "$FILTER_DIR/pstopdfff"
 #!/bin/bash
 set -o pipefail
 
 ORIG_BIN="/usr/lib/cups/filter/pstopdfff.orig"
+FUJI_U="__FUJI_USER__"
+FUJI_P="__FUJI_PASS__"
 
 if [ -n "$6" ]; then
     INFILE="$6"
@@ -120,18 +141,34 @@ elif echo "$OPTIONS" | grep -q -E "(number-up=4|FFLayout=4up)" && ! echo "$OPTIO
 fi
 
 JOB_TITLE="${3:-Print Job}"
-CLEAN_TITLE=$(echo "$JOB_TITLE" | tr -d '"\r\n\\')
+CLEAN_TITLE=$(printf '%s' "$JOB_TITLE" | tr -d '"\r\n\\')
 
-"$ORIG_BIN" "$1" "$2" "$3" "$4" "$OPTIONS" "$INFILE" | awk -v u="printerserver" -v p="cskmitl" -v t="$CLEAN_TITLE" '{
-    print $0
-    if ($0 ~ /@PJL COMMENT Version:4.00/) {
-        print "@PJL SET JOBNAME=\"" t "\""
-        print "@PJL SET USERNAME=\"" u "\""
-        print "@PJL SET JOBATTR=\"@JOAU=" u "\""
-        print "@PJL SET JOBATTR=\"@JOAP=" p "\""
-        print "@PJL SET JOBATTR=\"@JONA=" t "\""
-    }
-}'
+"$ORIG_BIN" "$1" "$2" "$3" "$4" "$OPTIONS" "$INFILE" | FUJI_U="$FUJI_U" FUJI_P="$FUJI_P" FUJI_T="$CLEAN_TITLE" python3 -c '
+import os, sys, shutil
+u = os.environ["FUJI_U"].encode("ascii", "ignore")
+p = os.environ["FUJI_P"].encode("ascii", "ignore")
+t = os.environ["FUJI_T"].encode("utf-8", "ignore")
+marker = b"@PJL COMMENT Version:4.00"
+inject = (
+    b"@PJL SET JOBNAME=\"" + t + b"\"\r\n"
+    b"@PJL SET USERNAME=\"" + u + b"\"\r\n"
+    b"@PJL SET JOBATTR=\"@JOAU=" + u + b"\"\r\n"
+    b"@PJL SET JOBATTR=\"@JOAP=" + p + b"\"\r\n"
+    b"@PJL SET JOBATTR=\"@JONA=" + t + b"\"\r\n"
+)
+inp = sys.stdin.buffer
+out = sys.stdout.buffer
+while True:
+    line = inp.readline()
+    if not line:
+        break
+    out.write(line)
+    if marker in line:
+        out.write(inject)
+        shutil.copyfileobj(inp, out, 65536)
+        break
+out.flush()
+'
 STATUS=$?
 
 if [ -n "$TMPFILE" ]; then
@@ -140,6 +177,9 @@ fi
 
 exit $STATUS
 EOF
+
+# Substitute configured credentials safely
+sed -i "s|__FUJI_USER__|${USER_NAME}|g; s|__FUJI_PASS__|${USER_PASS}|g" "$FILTER_DIR/pdftopjlff" "$FILTER_DIR/pstopdfff"
 
 chmod 755 "$FILTER_DIR/pdftopjlff" "$FILTER_DIR/pstopdfff"
 chown root:root "$FILTER_DIR/pdftopjlff" "$FILTER_DIR/pstopdfff"

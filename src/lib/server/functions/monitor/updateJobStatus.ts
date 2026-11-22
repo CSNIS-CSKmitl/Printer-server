@@ -6,6 +6,7 @@ import {
   missingJobTimestamps,
   jobSpoolTimestamps,
   jobHardwareSeenProcessing,
+  jobInitialPageCounters,
 } from "./timestamps";
 
 export async function updateJobStatus(
@@ -63,5 +64,6 @@ export async function updateJobStatus(
     missingJobTimestamps.delete(job.id);
     jobSpoolTimestamps.delete(job.id);
     jobHardwareSeenProcessing.delete(job.id);
+    jobInitialPageCounters.delete(job.id);
   }
 }
