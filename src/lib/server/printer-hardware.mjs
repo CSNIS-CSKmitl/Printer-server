@@ -258,10 +258,23 @@ export function evaluateIppCompletedJob(ippJob, expectedPages) {
     const actualPages =
       reportedOutput !== null ? Math.min(expectedPages, Math.max(0, reportedOutput)) : 0;
     const reasonLabel = reasonsStr || ippJob.state;
+    const isFormatError = (ippJob.reasons ?? []).some(
+      (r) => r.includes("format-error") || r.includes("unsupported"),
+    );
+
+    let errorMessage;
+    if (isFormatError) {
+      errorMessage = `เครื่องพิมพ์ไม่สามารถอ่านไฟล์ PDF นี้ได้ (${reasonLabel}) — พิมพ์ออก ${actualPages}/${expectedPages} หน้า (คืนเครดิตแล้ว) แนะนำให้ Save/Export เป็น PDF ใหม่แล้วลองอีกครั้ง`;
+    } else if (ippJob.state === "canceled") {
+      errorMessage = `งานถูกยกเลิกที่เครื่องพิมพ์ (${reasonLabel}) — พิมพ์ออก ${actualPages}/${expectedPages} หน้า (คืนเครดิตแล้ว)`;
+    } else {
+      errorMessage = `เครื่องพิมพ์ยกเลิกงานเนื่องจากเกิดข้อผิดพลาด (${reasonLabel}) — พิมพ์ออก ${actualPages}/${expectedPages} หน้า (คืนเครดิตแล้ว)`;
+    }
+
     return {
       failed: true,
       actualPages,
-      errorMessage: `Printer job ${ippJob.state} (${reasonLabel}) — Printed ${actualPages}/${expectedPages} pages`,
+      errorMessage,
     };
   }
 
@@ -269,7 +282,7 @@ export function evaluateIppCompletedJob(ippJob, expectedPages) {
     return {
       failed: true,
       actualPages: 0,
-      errorMessage: `Printer completed job with 0 output sheets (Printed 0/${expectedPages} pages)`,
+      errorMessage: `เครื่องพิมพ์ไม่ได้พิมพ์กระดาษออก (0/${expectedPages} หน้า — ไฟล์ PDF อาจไม่รองรับ เช่น รหัส 016-751) คืนเครดิตให้แล้ว แนะนำให้ Save เป็น PDF ใหม่แล้วลองอีกครั้ง`,
     };
   }
 

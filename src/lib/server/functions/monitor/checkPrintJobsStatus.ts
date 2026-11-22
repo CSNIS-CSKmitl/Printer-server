@@ -194,7 +194,7 @@ export async function checkPrintJobsStatus(): Promise<void> {
                 pb,
                 job,
                 "failed",
-                `Canceled at printer / Out of paper (Printed ${actualPages}/${job.pages} pages)`,
+                `งานถูกยกเลิกที่เครื่องพิมพ์หรือกระดาษหมด — พิมพ์ออก ${actualPages}/${job.pages} หน้า (คืนเครดิตส่วนที่ไม่ได้พิมพ์แล้ว)`,
                 toRefund,
                 actualPages,
               );
@@ -203,7 +203,7 @@ export async function checkPrintJobsStatus(): Promise<void> {
                 pb,
                 job,
                 "failed",
-                "Canceled at printer / Out of paper",
+                "งานถูกยกเลิกที่เครื่องพิมพ์หรือกระดาษหมด (คืนเครดิตให้แล้ว)",
                 job.pages,
                 0,
               );
@@ -226,7 +226,7 @@ export async function checkPrintJobsStatus(): Promise<void> {
                 pb,
                 job,
                 "failed",
-                `Failed at printer (Printed ${actualPages}/${job.pages} pages)`,
+                `เกิดข้อผิดพลาดที่เครื่องพิมพ์ — พิมพ์ออก ${actualPages}/${job.pages} หน้า (คืนเครดิตส่วนที่ไม่ได้พิมพ์แล้ว)`,
                 toRefund,
                 actualPages,
               );
@@ -235,7 +235,7 @@ export async function checkPrintJobsStatus(): Promise<void> {
                 pb,
                 job,
                 "failed",
-                "Failed at printer",
+                "เกิดข้อผิดพลาดที่เครื่องพิมพ์ (คืนเครดิตให้แล้ว)",
                 job.pages,
                 0,
               );
@@ -299,7 +299,7 @@ export async function checkPrintJobsStatus(): Promise<void> {
                         pb,
                         job,
                         "failed",
-                        `Canceled at printer / Out of paper (Printed ${printed}/${job.pages} pages)`,
+                        `งานถูกยกเลิกกลางคันหรือกระดาษหมด — พิมพ์ออก ${printed}/${job.pages} หน้า (คืนเครดิตส่วนที่ไม่ได้พิมพ์แล้ว)`,
                         toRefund,
                         printed,
                       );
@@ -384,7 +384,7 @@ export async function checkPrintJobsStatus(): Promise<void> {
                     pb,
                     job,
                     "failed",
-                    "Job disappeared from CUPS without printing pages",
+                    "งานหายออกจากคิวพิมพ์โดยไม่มีกระดาษออก (คืนเครดิตให้แล้ว)",
                     job.pages,
                     0,
                   );

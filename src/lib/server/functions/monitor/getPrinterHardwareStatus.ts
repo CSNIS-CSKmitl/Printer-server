@@ -235,7 +235,7 @@ export async function verifyPrinterJobOutcome(
           verified: true,
           failed: true,
           actualPages: 0,
-          errorMessage: `Printer output 0 sheets (job canceled or error at printer, e.g. 016-751) — Printed 0/${job.pages} pages`,
+          errorMessage: `เครื่องพิมพ์ไม่ได้พิมพ์กระดาษออก (0/${job.pages} หน้า — ไฟล์ PDF อาจไม่รองรับ เช่น รหัส 016-751 หรือเครื่องยกเลิกงาน) คืนเครดิตให้แล้ว แนะนำให้ Save เป็น PDF ใหม่แล้วลองอีกครั้ง`,
         };
       }
       return {

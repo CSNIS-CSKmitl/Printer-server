@@ -124,7 +124,8 @@ test("evaluateIppCompletedJob flags 016-751 aborted/0-sheet jobs as failed for f
   );
   assert.equal(aborted.failed, true);
   assert.equal(aborted.actualPages, 0);
-  assert.match(aborted.errorMessage, /aborted/);
+  assert.match(aborted.errorMessage, /document-format-error/);
+  assert.match(aborted.errorMessage, /คืนเครดิต/);
 
   const completedWithErrors = evaluateIppCompletedJob(
     {
