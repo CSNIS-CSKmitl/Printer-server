@@ -63,7 +63,7 @@
 			href="/"
 			class="flex items-center gap-2 font-mono text-sm tracking-tight text-fg-app"
 		>
-			<Printer class="h-4 w-4 text-accent" />
+			<img src="/logocs.png" alt="CS KMITL Logo" class="h-8 w-8 shrink-0 object-contain" />
 			<div class="flex flex-col">
 				<span class="font-semibold leading-none">print server</span>
 				<span
