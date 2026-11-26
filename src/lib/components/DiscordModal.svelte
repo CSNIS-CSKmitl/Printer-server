@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { onDestroy } from "svelte";
+	import { fade, scale } from "svelte/transition";
 	import { Check, Copy, ExternalLink, X } from "@lucide/svelte";
 	import Discord from "$lib/components/icons/Discord.svelte";
 	import { createQrSvg } from "$lib/utils/qrcodegen";
+	import { toast } from "$lib/toast";
 
 	let {
 		open = false,
@@ -17,17 +20,23 @@
 	let copied = $state<boolean>(false);
 	let copyTimeout: ReturnType<typeof setTimeout> | null = null;
 
+	onDestroy(() => {
+		if (copyTimeout) clearTimeout(copyTimeout);
+	});
+
 	async function copyLink(): Promise<void> {
 		if (!link) return;
 		try {
 			await navigator.clipboard.writeText(link);
 			copied = true;
+			toast.success("คัดลอกลิงก์ Discord แล้ว");
 			if (copyTimeout) clearTimeout(copyTimeout);
 			copyTimeout = setTimeout(() => {
 				copied = false;
 			}, 2000);
 		} catch (err) {
 			console.error("Failed to copy Discord link:", err);
+			toast.error("ไม่สามารถคัดลอกลิงก์ได้");
 		}
 	}
 
@@ -42,14 +51,16 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm transition-opacity duration-200"
+		transition:fade={{ duration: 150 }}
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
 		role="presentation"
 		onclick={(e) => {
 			if (e.target === e.currentTarget) onclose();
 		}}
 	>
 		<div
-			class="relative w-full max-w-sm overflow-hidden rounded-2xl border border-app bg-surface p-6 shadow-2xl transition-all duration-200 animate-in fade-in zoom-in-95 focus:outline-none"
+			transition:scale={{ start: 0.96, duration: 180 }}
+			class="relative w-full max-w-sm overflow-hidden rounded-2xl border border-strong-app bg-surface p-6 shadow-2xl focus:outline-none"
 			role="dialog"
 			aria-modal="true"
 			tabindex="-1"

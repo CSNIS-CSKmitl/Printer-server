@@ -29,7 +29,15 @@
         {/if}
       </div>
       <h2 id="announcement-title" class="break-words text-xl font-semibold leading-relaxed">{feed.selected?.title || (feed.loaded ? 'ยังไม่มีประกาศในขณะนี้' : 'กำลังโหลดประกาศ')}</h2>
-      <p id="announcement-body" class="whitespace-pre-wrap break-words text-sm leading-relaxed text-secondary-app">{feed.selected?.body || (feed.loaded ? 'ประกาศใหม่จะแสดงเมื่อเผยแพร่จากศูนย์ประกาศกลาง' : 'กรุณารอสักครู่')}</p>
+      {#if !feed.loaded && !feed.selected}
+        <div class="space-y-2 animate-pulse" aria-busy="true">
+          <div class="h-4 w-3/4 rounded bg-elevated"></div>
+          <div class="h-4 w-full rounded bg-elevated"></div>
+          <div class="h-4 w-2/3 rounded bg-elevated"></div>
+        </div>
+      {:else}
+        <p id="announcement-body" class="whitespace-pre-wrap break-words text-sm leading-relaxed text-secondary-app">{feed.selected?.body || 'ประกาศใหม่จะแสดงเมื่อเผยแพร่จากศูนย์ประกาศกลาง'}</p>
+      {/if}
     </header>
     {#if feed.selected}
       {#if announcementLink(feed.selected.link_url)}<a href={announcementLink(feed.selected.link_url)} target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">{feed.selected.link_label || 'เปิดลิงก์'}<ExternalLink aria-hidden="true" class="size-4" /></a>{/if}

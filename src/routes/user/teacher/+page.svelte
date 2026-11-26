@@ -2,6 +2,8 @@
 	import { onMount } from "svelte";
 	import { pbBrowser } from "$lib/pb/client";
 	import { invalidateAll } from "$app/navigation";
+	import { navigating } from "$app/state";
+	import { toast } from "$lib/toast";
 	import AlertBanner from "$lib/components/AlertBanner.svelte";
 	import QuotaBar from "$lib/components/QuotaBar.svelte";
 	import StagedPrintForm from "$lib/components/Print-Com/user/StagedPrintForm.svelte";
@@ -9,6 +11,19 @@
 	import type { PageData, ActionData } from "./$types";
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let isNavigating = $derived(Boolean(navigating.to));
+	let lastToastedForm: ActionData | null = null;
+
+	$effect(() => {
+		if (form && form !== lastToastedForm && form.message) {
+			lastToastedForm = form;
+			if (form.ok) {
+				toast.success(form.message);
+			} else {
+				toast.error(form.message);
+			}
+		}
+	});
 
 	onMount(() => {
 		let unsubscribeJobs: (() => void) | null = null;
@@ -127,5 +142,5 @@
 
 	<StagedPrintForm maxUploadBytes={data.maxUploadBytes} />
 
-	<UserJobsTable jobs={data.jobs} />
+	<UserJobsTable jobs={data.jobs} loading={isNavigating} />
 </div>

@@ -14,6 +14,7 @@
 	} from "@lucide/svelte";
 	import Button from "$lib/components/Button.svelte";
 	import AlertBanner from "$lib/components/AlertBanner.svelte";
+	import { toast } from "$lib/toast";
 
 	let { maxUploadBytes }: { maxUploadBytes: number | null } = $props();
 	let uploadError = $state("");
@@ -51,6 +52,7 @@
 		if (maxUploadBytes !== null && file.size >= maxUploadBytes) {
 			clearStaged();
 			uploadError = sizeError;
+			toast.error(sizeError);
 			return;
 		}
 		uploadError = "";

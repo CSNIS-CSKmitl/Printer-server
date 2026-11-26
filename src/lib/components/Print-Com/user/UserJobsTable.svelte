@@ -7,6 +7,7 @@
 
 	let {
 		jobs,
+		loading = false,
 	}: {
 		jobs: Array<
 			PrintJobsRecord & {
@@ -14,6 +15,7 @@
 				etaMinutes: number | null;
 			}
 		>;
+		loading?: boolean;
 	} = $props();
 
 	function jobStatusSub(job: {
@@ -53,7 +55,21 @@
 			</h2>
 		</div>
 		<div class="overflow-x-auto">
-			{#if jobs.length === 0}
+			{#if loading && jobs.length === 0}
+				<div class="divide-y divide-app px-6 py-2" aria-busy="true" aria-label="กำลังโหลดรายการงานพิมพ์">
+					{#each [1, 2, 3] as _ (_)}
+						<div class="flex items-center justify-between gap-4 py-4 animate-pulse">
+							<div class="space-y-2 flex-1">
+								<div class="h-4 w-48 rounded bg-elevated"></div>
+								<div class="h-3 w-32 rounded bg-elevated"></div>
+							</div>
+							<div class="h-4 w-16 rounded bg-elevated"></div>
+							<div class="h-6 w-20 rounded-full bg-elevated"></div>
+							<div class="h-8 w-24 rounded-md bg-elevated"></div>
+						</div>
+					{/each}
+				</div>
+			{:else if jobs.length === 0}
 				<div class="px-6 py-12 text-center">
 					<Upload class="mx-auto mb-3 h-8 w-8 text-muted-app" />
 					<p class="text-sm text-muted-app">ยังไม่มีงานพิมพ์</p>

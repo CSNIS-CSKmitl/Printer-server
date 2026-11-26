@@ -54,7 +54,7 @@
 </script>
 
 <header
-	class="sticky top-0 z-30 border-b border-app bg-app/80 backdrop-blur transition-colors duration-300"
+	class="sticky top-0 z-30 border-b border-strong-app bg-app/85 backdrop-blur transition-colors duration-300"
 >
 	<div
 		class="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-4 px-4 sm:gap-6 sm:px-6"
@@ -104,12 +104,12 @@
 				{@const active = link.exact ? page.url.pathname === link.href : page.url.pathname.startsWith(link.href)}
 				<a
 					href={link.href}
-					class="inline-flex h-8 items-center gap-1.5 rounded-md px-3 font-mono text-xs transition-colors duration-200 {active
+					class="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md px-3 font-mono text-xs font-medium transition-colors duration-200 {active
 						? 'bg-elevated text-fg-app'
 						: 'text-secondary-app hover:bg-elevated hover:text-fg-app'}"
 				>
 					<link.icon
-						class="h-3.5 w-3.5 {active ? 'text-accent' : ''}"
+						class="h-3.5 w-3.5 shrink-0 {active ? 'text-accent' : ''}"
 					/>
 					{link.label}
 				</a>

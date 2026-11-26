@@ -21,6 +21,7 @@
 		type StatPrintJob,
 		type StatUserRecord
 	} from '$lib/print-stats';
+	import { toast } from '$lib/toast';
 
 	type ComputedStats = ReturnType<typeof calculatePrintStats>;
 
@@ -161,6 +162,7 @@
 		link.click();
 		document.body.removeChild(link);
 		URL.revokeObjectURL(url);
+		toast.success('ส่งออกรายงานสถิติ CSV เรียบร้อย');
 	}
 </script>
 
@@ -265,11 +267,35 @@
 			</div>
 		</div>
 	{:else if loading && statJobs.length === 0 && (!stats || stats.jobs === 0)}
-		<div
-			class="flex items-center justify-center gap-3 rounded-xl border border-app bg-surface py-10 text-sm text-muted-app shadow-sm"
-		>
-			<RefreshCw class="h-4 w-4 animate-spin text-accent" />
-			<span>กำลังโหลดสถิติ...</span>
+		<div class="space-y-3" aria-busy="true" aria-label="กำลังโหลดสถิติ">
+			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+				{#each [1, 2, 3, 4] as _ (_)}
+					<div class="rounded-xl border border-app bg-surface p-4 shadow-sm animate-pulse">
+						<div class="flex items-start justify-between gap-3">
+							<div class="space-y-2 flex-1">
+								<div class="h-3 w-24 rounded bg-elevated"></div>
+								<div class="h-7 w-16 rounded bg-elevated"></div>
+							</div>
+							<div class="h-5 w-5 rounded bg-elevated"></div>
+						</div>
+						<div class="mt-3 h-3 w-36 rounded bg-elevated"></div>
+					</div>
+				{/each}
+			</div>
+			<div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+				<div class="rounded-xl border border-app bg-surface p-4 shadow-sm lg:col-span-6 animate-pulse">
+					<div class="h-4 w-44 rounded bg-elevated"></div>
+					<div class="mt-4 h-32 w-full rounded bg-elevated"></div>
+				</div>
+				<div class="rounded-xl border border-app bg-surface p-4 shadow-sm lg:col-span-6 animate-pulse">
+					<div class="h-4 w-36 rounded bg-elevated"></div>
+					<div class="mt-4 space-y-2.5">
+						<div class="h-8 w-full rounded bg-elevated"></div>
+						<div class="h-8 w-full rounded bg-elevated"></div>
+						<div class="h-8 w-full rounded bg-elevated"></div>
+					</div>
+				</div>
+			</div>
 		</div>
 	{:else}
 		<!-- Clickable Status Drill-down Cards -->

@@ -9,10 +9,12 @@
 	let {
 		jobs,
 		drilldown = $bindable<PrintDrilldownFilter>('all'),
+		loading = false,
 		onClearFilter
 	}: {
 		jobs: Array<PrintJobsRecord & { queuePosition: number | null }>;
 		drilldown?: PrintDrilldownFilter;
+		loading?: boolean;
 		onClearFilter?: () => void;
 	} = $props();
 
@@ -105,6 +107,20 @@
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-app">
+				{#if loading && jobs.length === 0}
+					{#each [1, 2, 3] as _ (_)}
+						<tr class="animate-pulse">
+							<td class="px-6 py-4"><div class="h-4 w-16 rounded bg-elevated"></div></td>
+							<td class="px-6 py-4"><div class="h-4 w-40 rounded bg-elevated"></div></td>
+							<td class="px-6 py-4"><div class="h-4 w-28 rounded bg-elevated"></div></td>
+							<td class="px-6 py-4"><div class="h-4 w-20 rounded bg-elevated"></div></td>
+							<td class="px-6 py-4"><div class="h-4 w-8 rounded bg-elevated"></div></td>
+							<td class="px-6 py-4"><div class="h-4 w-10 rounded bg-elevated"></div></td>
+							<td class="px-6 py-4"><div class="h-6 w-20 rounded-full bg-elevated"></div></td>
+							<td class="px-6 py-4"><div class="h-8 w-16 rounded-md bg-elevated"></div></td>
+						</tr>
+					{/each}
+				{:else}
 				{#each jobs as job (job.id)}
 					<tr class="hover:bg-elevated transition-colors">
 						<td class="px-6 py-4 font-mono text-xs text-accent">
@@ -169,6 +185,7 @@
 						</td>
 					</tr>
 				{/each}
+				{/if}
 			</tbody>
 		</table>
 	</div>

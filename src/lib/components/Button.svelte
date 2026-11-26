@@ -44,9 +44,9 @@
 	// Variant styling. All token-driven so themes swap automatically.
 	const variantClasses: Record<Variant, string> = {
 		primary:
-			'bg-accent text-fg-app hover:bg-accent-soft hover:text-accent border border-transparent',
+			'bg-accent text-white hover:bg-accent/90 border border-transparent',
 		secondary:
-			'border border-app bg-surface text-secondary-app hover:border-strong-app hover:text-fg-app',
+			'border border-strong-app bg-surface text-secondary-app hover:border-fg-app/30 hover:text-fg-app',
 		danger:
 			'border border-danger/30 bg-danger/10 text-danger hover:bg-danger/20',
 		ghost:

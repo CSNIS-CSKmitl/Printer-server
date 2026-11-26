@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pbBrowser } from '$lib/pb/client';
 	import { invalidateAll } from '$app/navigation';
+	import { toast } from '$lib/toast';
 	import AlertBanner from '$lib/components/AlertBanner.svelte';
 	import PrintQueueTable from '$lib/components/Print-Com/admin/PrintQueueTable.svelte';
 	import UserQuotasTable from '$lib/components/Print-Com/admin/UserQuotasTable.svelte';
@@ -20,6 +21,18 @@
 	let realtime = $state(true);
 	let refreshing = $state(false);
 	let lastUpdated = $state('');
+	let lastToastedForm: ActionData | null = null;
+
+	$effect(() => {
+		if (form && form !== lastToastedForm && form.message) {
+			lastToastedForm = form;
+			if (form.ok) {
+				toast.success(form.message);
+			} else {
+				toast.error(form.message);
+			}
+		}
+	});
 
 	$effect(() => {
 		if (data.loadedAt) {
@@ -77,7 +90,7 @@
 	});
 </script>
 
-<div class="mx-auto max-w-fit px-6 py-8">
+<div class="mx-auto max-w-[1400px] px-4 py-8 sm:px-6">
 	{#if form?.message}
 		<div class="mb-4">
 			<AlertBanner
@@ -103,8 +116,9 @@
 	<PrintQueueTable
 		jobs={filteredJobs}
 		bind:drilldown
+		loading={refreshing}
 		onClearFilter={() => (drilldown = 'all')}
 	/>
 
-	<UserQuotasTable users={data.users} />
+	<UserQuotasTable users={data.users} loading={refreshing} />
 </div>

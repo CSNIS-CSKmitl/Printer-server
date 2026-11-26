@@ -15,7 +15,7 @@
 		};
 	}
 
-	let { users }: { users: UserWithQuota[] } = $props();
+	let { users, loading = false }: { users: UserWithQuota[]; loading?: boolean } = $props();
 
 	// Local search state for the user-quotas table — client-side filter
 	let query = $state("");
@@ -169,7 +169,7 @@
 					{/each}
 					<div class="relative">
 						<Plus
-							class="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-app"
+							class="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-app"
 						/>
 						<input
 							type="number"
@@ -177,9 +177,9 @@
 							min="1"
 							step="1"
 							required
-							placeholder=" จำนวน"
-							title="จำนวนหน้าที่จะเพิ่ม (ใส่ค่าลบได้)"
-							class="w-22 rounded-md border border-app bg-surface py-2 pl-6 pr-2 text-xs font-mono text-fg-app placeholder:text-muted-app focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+							placeholder="จำนวน"
+							title="จำนวนหน้าที่จะเพิ่ม"
+							class="w-24 rounded-md border border-strong-app bg-surface py-2 pl-7 pr-2 text-xs font-mono text-fg-app placeholder:text-muted-app focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
 						/>
 					</div>
 					<Button
@@ -275,6 +275,21 @@
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-app">
+				{#if loading && users.length === 0}
+					{#each [1, 2, 3, 4] as _ (_)}
+						<tr class="animate-pulse">
+							<td class="px-6 py-4"><div class="h-4 w-4 rounded bg-elevated"></div></td>
+							<td class="px-6 py-4 space-y-1.5">
+								<div class="h-4 w-32 rounded bg-elevated"></div>
+								<div class="h-3 w-44 rounded bg-elevated"></div>
+							</td>
+							<td class="px-6 py-4"><div class="h-4 w-16 rounded bg-elevated"></div></td>
+							<td class="px-6 py-4"><div class="h-4 w-24 rounded bg-elevated"></div></td>
+							<td class="px-6 py-4"><div class="h-4 w-36 rounded bg-elevated"></div></td>
+							<td class="px-6 py-4"><div class="h-8 w-44 rounded bg-elevated"></div></td>
+						</tr>
+					{/each}
+				{:else}
 				{#each filteredUsers as u (u.id)}
 					{@const quota = u.quota}
 					<tr class="hover:bg-elevated transition-colors">
@@ -353,7 +368,7 @@
 									/>
 									<div class="relative">
 										<Plus
-											class="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-app"
+											class="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-app"
 										/>
 										<input
 											type="number"
@@ -361,9 +376,9 @@
 											min="1"
 											step="1"
 											required
-											placeholder=" จำนวน"
-											title="จำนวนหน้าที่ต้องการเพิ่ม (ใส่ค่าลบได้ถ้าต้องการลด)"
-											class="w-22 rounded-md border border-app bg-surface py-2 pl-6 pr-2 text-xs font-mono text-fg-app placeholder:text-muted-app focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+											placeholder="จำนวน"
+											title="จำนวนหน้าที่ต้องการเพิ่ม"
+											class="w-24 rounded-md border border-strong-app bg-surface py-2 pl-7 pr-2 text-xs font-mono text-fg-app placeholder:text-muted-app focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
 										/>
 									</div>
 									<Button
@@ -406,6 +421,7 @@
 						</td>
 					</tr>
 				{/each}
+				{/if}
 			</tbody>
 		</table>
 	</div>

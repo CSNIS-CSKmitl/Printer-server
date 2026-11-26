@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { LogIn, Lock, User } from "@lucide/svelte";
 	import { pbBrowser } from "$lib/pb/client";
+	import { toast } from "$lib/toast";
 	import AlertBanner from "$lib/components/AlertBanner.svelte";
 	import Button from "$lib/components/Button.svelte";
 	import type { ActionData } from "./$types";
@@ -9,6 +10,14 @@
 
 	let oauthLoading = $state(false);
 	let oauthError = $state<string | null>(null);
+	let lastToastedForm: ActionData | null = null;
+
+	$effect(() => {
+		if (form && form !== lastToastedForm && form.error) {
+			lastToastedForm = form;
+			toast.error(form.error);
+		}
+	});
 
 	async function signInWithOidc() {
 		oauthLoading = true;
@@ -33,6 +42,7 @@
 				}),
 			});
 			if (!res.ok) throw new Error("failed to persist session");
+			toast.success("เข้าสู่ระบบสำเร็จ กำลังเปลี่ยนหน้า...");
 			// Hard reload so every layout/page load re-runs on the
 			// server with the freshly-set `pb_auth` cookie (and the
 			// just-assigned `user_type`) — `goto()` keeps the client
@@ -42,6 +52,7 @@
 			oauthError =
 				(e as { message?: string })?.message ??
 				"IAM sign-in failed. Please try again.";
+			toast.error(oauthError);
 		} finally {
 			oauthLoading = false;
 		}
