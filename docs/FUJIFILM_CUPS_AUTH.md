@@ -11,7 +11,7 @@
    > *"The job has been canceled because the user account is invalid."*  
    > *Host Name: \<IP ของ Print Server\>*  
    > *User: Local User*  
-   > *(หรือขึ้น Fault Code 016-757 / 016-758)*
+   > *(หรือขึ้น Fault Code 016-757 / 016-758 สำหรับสิทธิ์ไม่ผ่าน และ 016-751 หากสตรีม PDF ถูกแปลงใน text mode จนไบนารีเสียหาย)*
 2. **ที่หน้าเว็บระบบพิมพ์**: ถึงแม้กระดาษจะพิมพ์ออกมาได้แล้ว แต่หน้าเว็บแสดงสถานะ **"Failed (Canceled at printer / Out of paper)"** และระบบทำการคืนโควตา (Refund) ให้อัตโนมัติ
 3. **ปัญหาการรวมหน้า (N-up: 2 หน้า/แผ่น, 4 หน้า/แผ่น)**: สั่งรวมหน้าแล้วเครื่องยังคงพิมพ์ 1 หน้าเต็มต่อแผ่น ไม่ยอมรวมหน้าให้
 4. **สถานะขึ้น "สำเร็จ" ก่อนพิมพ์เสร็จจริง**: หน้าเว็บเปลี่ยนเป็นสำเร็จทันทีที่ CUPS ส่งไฟล์เข้า spooler เสร็จ ทั้งที่เครื่องพิมพ์จริงกำลังดูดกระดาษพิมพ์แผ่นแรกๆ อยู่
@@ -63,24 +63,24 @@ sudo bash scripts/setup-fuji-cups-auth.sh
 สคริปต์จะทำการ:
 1. แบ็กอัปไบนารีดั้งเดิมของไดรเวอร์ไว้ที่ `pdftopjlff.orig` และ `pstopdfff.orig`
 2. สร้างสคริปต์ Wrapper ขึ้นมาแทนที่:
-   - **รองรับระบบรวมหน้า (N-up Translation)**: ดักจับ `-o number-up=2/4` และแปลงเป็น `-o FFLayout=2up/4up` ให้ไดรเวอร์ไบนารีเข้าใจ พร้อมคำนวณจำนวนแผ่นที่แท้จริง (`SHEETS = ceil(PAGES / NUP) * COPIES`)
+   - **รองรับระบบรวมหน้า (N-up Translation)**: ดักจับ `-o number-up=2/4/8/16` และแปลงเป็น `-o FFLayout=2up/4up/8up/16up` ให้ไดรเวอร์ไบนารีเข้าใจ พร้อมคำนวณจำนวนแผ่นที่แท้จริง (`SHEETS = ceil(PAGES / NUP) * COPIES`)
    - **ตรวจนับหน้าจริงล่วงหน้า**: ใช้เครื่องมือ `pdfinfo` อ่านจำนวนหน้าแล้วส่งข้อความ `PAGE: <sheet> <copies>` และ `PAGE: total <sheets>` ออกทาง stderr เพื่อให้ CUPS บันทึกลง `page_log` สอดคล้องกับโควตาของระบบ
-   - **แทรกชื่อเอกสารและ PJL Authentication Headers**: ส่ง Stream ผ่าน `awk` เพื่อแทรกข้อมูลผู้ใช้และชื่อเอกสารลงหลังบรรทัด `@PJL COMMENT Version:4.00`:
+   - **แทรกชื่อเอกสารและ PJL Authentication Headers แบบ Binary-safe**: ส่ง Stream ผ่าน `python3` (`sys.stdin.buffer` / `sys.stdout.buffer` + `shutil.copyfileobj`) แทน text-mode `awk` เพื่อไม่ให้ไบต์ไบนารี (NUL / non-UTF-8) ในไฟล์ PDF เสียหายจนเกิด Fault Code `016-751` โดยแทรกข้อมูลผู้ใช้และชื่อเอกสารลงหลังบรรทัด `@PJL COMMENT Version:4.00`:
      ```pjl
      @PJL SET JOBNAME="ชื่อไฟล์.pdf"
      @PJL SET USERNAME="printerserver"
      @PJL SET JOBATTR="@JOAU=printerserver"
      @PJL SET JOBATTR="@JOAP=cskmitl"
-     @PJL SET JOBATTR="@JONA="ชื่อไฟล์.pdf"
+     @PJL SET JOBATTR="@JONA=ชื่อไฟล์.pdf"
      ```
 3. สั่ง Restart บริการ CUPS (`systemctl restart cups`)
 
-### 3.3 การตรวจสอบสถานะเครื่องพิมพ์จริง (Hardware Checking via IPP)
+### 3.3 การตรวจสอบสถานะเครื่องพิมพ์จริง (Hardware Checking via IPP & Physical Output Verification)
 ใน `src/lib/server/functions/monitor/checkPrintJobsStatus.ts` และ `getPrinterHardwareStatus.ts`:
 - ก่อนจะปรับสถานะงานเป็น **"Completed (พิมพ์สำเร็จเรียบร้อย)"** ระบบจะส่งคำสั่ง query ไปยัง IPP Port 631 ของเครื่องพิมพ์จริง (`ipp://<IP>:631/ipp/print`)
 - **ถ้าฮาร์ดแวร์ยังคงอยู่ในสถานะ `processing`**: แสดงว่าลูกกลิ้งกำลังดึงกระดาษและหมึกกำลังพิมพ์อยู่ ระบบจะคงสถานะไว้ที่ **"กำลังพิมพ์ (Processing)"**
 - **ถ้าเกิดปัญหากระดาษติดหรือเครื่องหยุด `stopped`**: ตรวจจับ `media-jam` หรือ `out of paper` เพื่อแจ้งเตือนและไม่ปรับเป็นเสร็จสิ้น
-- **เมื่อฮาร์ดแวร์เปลี่ยนเป็น `idle` เรียบร้อย**: ยืนยันว่ากระดาษทุกแผ่นพิมพ์และหล่นลงถาดเรียบร้อยแล้ว จึงค่อยปรับสถานะเป็น **Completed**
+- **เมื่อฮาร์ดแวร์เปลี่ยนเป็น `idle` เรียบร้อย**: เรียก `verifyPrinterJobOutcome()` เพื่อยืนยันผลลัพธ์จากเครื่องพิมพ์จริง (รวมถึงการเช็ก SNMP page counter / สถานะ error ของฮาร์ดแวร์) ก่อนสรุปผล — หากยืนยันไม่ผ่านจะปรับเป็น **Failed** และคืนโควตาให้อัตโนมัติ แต่หากผ่านจึงค่อยปรับสถานะเป็น **Completed**
 
 ---
 

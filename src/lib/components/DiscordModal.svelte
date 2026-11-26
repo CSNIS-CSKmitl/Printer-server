@@ -60,7 +60,7 @@
 	>
 		<div
 			transition:scale={{ start: 0.96, duration: 180 }}
-			class="relative w-full max-w-sm overflow-hidden rounded-2xl border border-strong-app bg-surface p-6 shadow-2xl focus:outline-none"
+			class="relative w-full max-w-sm overflow-hidden rounded-2xl border border-strong-app bg-surface p-6 shadow-2xl transition-colors duration-200 focus:outline-none"
 			role="dialog"
 			aria-modal="true"
 			tabindex="-1"

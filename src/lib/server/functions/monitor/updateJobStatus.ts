@@ -1,15 +1,16 @@
 import type { ClientResponseError } from "pocketbase";
-import type { TypedPocketBase, PrintJobsRecord } from "../../pocketbase";
+import type { AppPocketBase, PrintJobsRecord } from "../../pocketbase";
 import { refundQuota } from "../quota/refundQuota";
 import {
   inactiveTimestamps,
   missingJobTimestamps,
   jobSpoolTimestamps,
   jobHardwareSeenProcessing,
+  jobInitialPageCounters,
 } from "./timestamps";
 
 export async function updateJobStatus(
-  pb: TypedPocketBase,
+  pb: AppPocketBase,
   job: PrintJobsRecord,
   newStatus: "pending" | "processing" | "completed" | "failed",
   errorMessage?: string,
@@ -63,5 +64,6 @@ export async function updateJobStatus(
     missingJobTimestamps.delete(job.id);
     jobSpoolTimestamps.delete(job.id);
     jobHardwareSeenProcessing.delete(job.id);
+    jobInitialPageCounters.delete(job.id);
   }
 }

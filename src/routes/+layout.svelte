@@ -1,5 +1,6 @@
 <script lang="ts">
 	import "./layout.css";
+	import { version } from "$app/environment";
 	import { page } from "$app/state";
 	import { fly } from "svelte/transition";
 	import { AlertCircle, CheckCircle2, Info, X } from "@lucide/svelte";
@@ -68,7 +69,7 @@
 		{/key}
 	</main>
 	<footer class="border-t border-strong-app px-4 py-3 text-center text-[11px] text-muted-app">
-		<span>© {new Date().getFullYear()} · <a href="https://github.com/techasit5415" target="_blank" rel="noopener noreferrer" class="hover:text-fg-app hover:underline">นาย เตชสิทธิ์ วาณิชภัทรกุล</a></span>
+		<span>© {new Date().getFullYear()} · <a href="https://github.com/techasit5415" target="_blank" rel="noopener noreferrer" class="hover:text-fg-app hover:underline">นาย เตชสิทธิ์ วาณิชภัทรกุล</a> · <span class="font-mono tabular-nums" title="Semantic Versioning: MAJOR.MINOR.PATCH">v{version}</span></span>
 		<nav aria-label="นโยบายและข้อกำหนด" class="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-0">
 		  <a href="/privacy" class="inline-flex min-h-7 items-center underline underline-offset-4 hover:text-fg-app">นโยบายความเป็นส่วนตัว</a>
 		  <a href="/terms" class="inline-flex min-h-7 items-center underline underline-offset-4 hover:text-fg-app">ข้อกำหนดการใช้งาน</a>

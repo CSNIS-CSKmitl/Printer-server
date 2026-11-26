@@ -8,6 +8,7 @@ import {
 } from "$lib/server/pocketbase";
 import { safeUnlink } from "$lib/server/functions/print/safeUnlink";
 import { submitPrintJob } from "$lib/server/functions/print/submitPrintJob";
+import { recordInitialPrinterCounter } from "$lib/server/functions/monitor/getPrinterHardwareStatus";
 import { cancelPrintJob } from "$lib/server/functions/print/cancelPrintJob";
 import { getPageCountOfFile } from "$lib/server/functions/print/getPageCountOfFile";
 import { deductQuota } from "$lib/server/functions/quota/deductQuota";
@@ -252,11 +253,15 @@ export const actions: Actions = {
         .create<PrintJobsRecord>(jobPayload);
       jobRecordId = created.id;
 
+      // Snapshot physical printer page counter before submitting to CUPS (non-fatal if SNMP unavailable)
+      await recordInitialPrinterCounter(created.id, serverEnv.printerName);
+
       // Hand the file to CUPS. This is the point of no return.
+      // Embed created.id in title so IPP Get-Jobs can uniquely match this job on the printer.
       const result = await submitPrintJob({
         filePath: tempPath,
         copies,
-        title: `${locals.user.email} — ${safeName}`,
+        title: `${created.id} ${locals.user.email} - ${safeName}`,
         sides,
         pagesPerSheet,
         color,

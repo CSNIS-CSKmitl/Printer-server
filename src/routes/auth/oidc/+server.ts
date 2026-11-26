@@ -55,7 +55,21 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     return json({ ok: false, error: "invalid payload" }, { status: 400 });
   }
 
-  let record = payload.record;
+  const pbVerify = new PocketBase(env.POCKETBASE_URL);
+  pbVerify.autoCancellation(false);
+  pbVerify.authStore.save(payload.token, null);
+  let record: RecordModel;
+  try {
+    const verified = await pbVerify
+      .collection("users")
+      .authRefresh({ expand: "user_type" });
+    if (!verified?.record?.id || verified.record.id !== payload.record.id) {
+      return json({ ok: false, error: "invalid session token" }, { status: 401 });
+    }
+    record = verified.record;
+  } catch {
+    return json({ ok: false, error: "invalid session token" }, { status: 401 });
+  }
 
   // Auto-assign the default user_type on first-time OAuth login.
   // The `user_type` relation is empty on a fresh PB-created record
@@ -122,40 +136,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         }
       } else {
         console.warn("[auth/oidc] No accessToken found in meta payload!");
-      }
-
-      // Fallback to client-provided metadata if backend fetch failed or accessToken is missing
-      if (!rawRole) {
-        const fallbackProfileRole = (
-          payload.meta?.rawUser as Record<string, any>
-        )?.profile?.role;
-        console.log(
-          "[DEBUG] Fallback evaluation. rawUser type:",
-          typeof payload.meta?.rawUser,
-          "rawUser.profile.role:",
-          fallbackProfileRole,
-          "rawUser.role:",
-          payload.meta?.rawUser?.role,
-          "meta.role:",
-          payload.meta?.role,
-        );
-
-        if (fallbackProfileRole) {
-          rawRole = String(fallbackProfileRole);
-          console.log(
-            `[auth/oidc] Fallback: Using client-provided rawUser.profile.role: "${rawRole}"`,
-          );
-        } else if (payload.meta?.rawUser?.role) {
-          rawRole = String(payload.meta.rawUser.role);
-          console.log(
-            `[auth/oidc] Fallback: Using client-provided rawUser.role: "${rawRole}"`,
-          );
-        } else if (payload.meta?.role) {
-          rawRole = String(payload.meta.role);
-          console.log(
-            `[auth/oidc] Fallback: Using client-provided meta.role: "${rawRole}"`,
-          );
-        }
       }
 
       if (rawRole) {

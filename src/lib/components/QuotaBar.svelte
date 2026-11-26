@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	/**
 	 * Quota usage progress bar — token-driven.
 	 *
@@ -49,7 +49,7 @@
 	{/if}
 	<div class={`w-full overflow-hidden rounded-full bg-elevated ${trackHeight}`}>
 		<div
-			class={`h-full rounded-full transition-all duration-300 ${severityClasses[severity]}`}
+			class={`h-full rounded-full transition-colors duration-300 ${severityClasses[severity]}`}
 			style="width: {pct}%"
 		></div>
 	</div>

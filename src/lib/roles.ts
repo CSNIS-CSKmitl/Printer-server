@@ -65,7 +65,6 @@ function addIdRole(id: string, set: Set<string>) {
   }
   if (id === "000000000000004") {
     set.add("staff");
-    set.add("stuff");
   }
   if (id === "000000000000005") set.add("head");
   if (id === "000000000000006") {
@@ -73,7 +72,6 @@ function addIdRole(id: string, set: Set<string>) {
     set.add("teachers");
   }
   if (id === "000000000000007") {
-    set.add("stuff");
     set.add("staff");
   }
   if (id === "000000000000008") {
@@ -100,8 +98,8 @@ export function hasRole(record: any, ...targetRoles: string[]): boolean {
     )
       return true;
     if (
-      (t === "staff" || t === "stuff") &&
-      (userRoles.includes("staff") || userRoles.includes("stuff"))
+      t === "staff" &&
+      userRoles.includes("staff")
     )
       return true;
     if (
@@ -138,7 +136,7 @@ export function canAccessAdmin(
 
 /**
  * In printer-server, unlimited printing is granted to:
- * teacher (teachers), staff (stuff), super_admin (superadmin), head.
+ * teacher (teachers), staff, super_admin (superadmin), head.
  */
 export function hasUnlimitedPrinting(record: any): boolean {
   if (!record) return false;
@@ -148,7 +146,6 @@ export function hasUnlimitedPrinting(record: any): boolean {
     "teacher",
     "teachers",
     "staff",
-    "stuff",
     "superadmin",
     "super_admin",
     "head",
@@ -165,14 +162,14 @@ export function formatDisplayRole(userOrRoles: any): DisplayRole {
   const cleanRoles = roleList.filter((r) => !isRawRoleId(r));
   if (
     cleanRoles.some((r) =>
-      ["super_admin", "superadmin", "admin", "staff", "stuff"].includes(r),
+      ["super_admin", "superadmin", "admin", "staff"].includes(r),
     )
   )
     return "เจ้าหน้าที่ (Staff)";
   if (cleanRoles.includes("head")) return "หัวหน้าภาควิชา (Head)";
   if (cleanRoles.some((r) => ["teacher", "teachers"].includes(r)))
     return "อาจารย์ (Teacher)";
-  if (cleanRoles.some((r) => ["staff", "stuff"].includes(r)))
+  if (cleanRoles.includes("staff"))
     return "เจ้าหน้าที่ (Staff)";
   if (cleanRoles.some((r) => ["student", "students"].includes(r)))
     return "นักศึกษา (Student)";

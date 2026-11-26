@@ -1,47 +1,30 @@
-# sv
+# Printer Server — CS KMITL Web Printing Gateway
 
-[แผนภาพเส้นทางการกดใช้งานและไฟล์ที่ถูกเรียก](CLICK_FLOW.md)
+ระบบสั่งพิมพ์เอกสารผ่านเว็บและจัดการโควตากระดาษของภาควิชาวิทยาการคอมพิวเตอร์ สจล. (SvelteKit 2 + Svelte 5 + PocketBase + Ubuntu CUPS)
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
-
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
-
-```sh
-# recreate this project
-npx sv@0.16.1 create --template minimal --types ts --add tailwindcss="plugins:none" --install npm ./
-```
+- [แผนภาพเส้นทางการกดใช้งานและไฟล์ที่ถูกเรียก](CLICK_FLOW.md)
+- [คู่มือการตั้งค่า CUPS Filter & Fujifilm Authentication](docs/FUJIFILM_CUPS_AUTH.md)
+- [คู่มือการปรับเวอร์ชัน (Semantic Versioning)](../Docs/VERSIONING.md)
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+ติดตั้ง dependencies แล้วรันเซิร์ฟเวอร์สำหรับพัฒนา:
 
 ```sh
+npm install
+cp .env.example .env
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
-
-To create a production version of your app:
+## Building & Testing
 
 ```sh
+npm run check
+npm run test
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+> เวอร์ชันของระบบถูกกำหนดไว้ที่ `package.json` (`version`) และส่งต่อไปแสดงผลใน Footer ผ่าน `svelte.config.js` (`kit.version.name`) โดยอัตโนมัติ
 
 ## Audit Log และความปลอดภัย
 
