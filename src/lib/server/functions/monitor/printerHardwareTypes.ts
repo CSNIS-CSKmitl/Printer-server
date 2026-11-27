@@ -35,6 +35,7 @@ export interface IppCompletedJob {
 export interface PrinterJobVerification {
   verified: boolean;
   failed: boolean;
+  pending?: boolean;
   actualPages: number;
   errorMessage?: string;
 }

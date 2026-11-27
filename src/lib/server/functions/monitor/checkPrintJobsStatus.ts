@@ -7,6 +7,7 @@ import {
   missingJobTimestamps,
   jobSpoolTimestamps,
   jobHardwareSeenProcessing,
+  jobHardwareIdleSince,
 } from "./timestamps";
 import { updateJobStatus } from "./updateJobStatus";
 import { GRACE_PERIOD_MS } from "./constants";
@@ -82,7 +83,29 @@ export async function checkPrintJobsStatus(): Promise<void> {
       fallbackActualPages?: number,
     ) => {
       const samePrinterCount = activeCountByPrinter.get(job.printer_name) ?? 1;
-      const verification = await verifyPrinterJobOutcome(job, samePrinterCount);
+      const spoolTime = jobSpoolTimestamps.get(job.id) ?? Date.now();
+      const timeSinceSpoolMs = Date.now() - spoolTime;
+      const seenProcessing = jobHardwareSeenProcessing.has(job.id);
+      if (seenProcessing && !jobHardwareIdleSince.has(job.id)) {
+        jobHardwareIdleSince.set(job.id, Date.now());
+      }
+      const idleSince = jobHardwareIdleSince.get(job.id);
+      const idleAfterProcessingMs =
+        seenProcessing && idleSince !== undefined
+          ? Date.now() - idleSince
+          : null;
+
+      const verification = await verifyPrinterJobOutcome(job, samePrinterCount, {
+        timeSinceSpoolMs,
+        seenProcessing,
+        idleAfterProcessingMs,
+      });
+      if (verification.pending) {
+        if (job.status !== "processing") {
+          await updateJobStatus(pb, job, "processing");
+        }
+        return;
+      }
       if (verification.failed) {
         const toRefund = Math.max(0, job.pages - verification.actualPages);
         console.warn(
@@ -251,6 +274,7 @@ export async function checkPrintJobsStatus(): Promise<void> {
               if (hw) {
                 if (hw.state === "processing") {
                   jobHardwareSeenProcessing.add(job.id);
+                  jobHardwareIdleSince.delete(job.id);
                   if (job.status !== "processing") {
                     await updateJobStatus(pb, job, "processing");
                   }

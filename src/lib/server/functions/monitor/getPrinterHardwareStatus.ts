@@ -200,9 +200,20 @@ export async function recordInitialPrinterCounter(
  * Layer 1: IPP Get-Jobs (which-jobs=completed) matched by unique job.id in job-name.
  * Layer 2: SNMP prtMarkerLifeCount delta (when this is the only active job on the printer).
  */
+// Fujifilm Apeos printers waking from sleep + warming fuser + RIPping PDF over raw socket://9100
+// can take 15-30s before the first sheet exits and SNMP prtMarkerLifeCount increments.
+const SNMP_COLD_WAKE_GRACE_MS = 35_000;
+// After hardware transitions processing -> idle, allow a short settle window for SNMP MIB flush.
+const SNMP_POST_PROCESSING_SETTLE_MS = 8_000;
+
 export async function verifyPrinterJobOutcome(
   job: PrintJobsRecord,
   samePrinterActiveCount: number,
+  options?: {
+    timeSinceSpoolMs?: number;
+    seenProcessing?: boolean;
+    idleAfterProcessingMs?: number | null;
+  },
 ): Promise<PrinterJobVerification> {
   // Layer 1: Query IPP Get-Jobs for the exact job (matched by PB job.id embedded in PJL JOBNAME)
   const completedJobs = await getPrinterCompletedJobs(job.printer_name);
@@ -227,10 +238,32 @@ export async function verifyPrinterJobOutcome(
     const currentCounter = await getPrinterPageCounter(job.printer_name, 1500);
     if (currentCounter !== null) {
       const delta = currentCounter - initialCounter;
+      const timeSinceSpoolMs = options?.timeSinceSpoolMs ?? 0;
+      const seenProcessing = Boolean(options?.seenProcessing);
+      const idleAfterProcessingMs = options?.idleAfterProcessingMs ?? null;
+
       console.log(
-        `[Monitor] Job ${job.id} SNMP counter check: before=${initialCounter}, after=${currentCounter}, delta=${delta}`,
+        `[Monitor] Job ${job.id} SNMP counter check: before=${initialCounter}, after=${currentCounter}, delta=${delta}, sinceSpool=${Math.round(timeSinceSpoolMs / 1000)}s, seenProcessing=${seenProcessing}`,
       );
+
       if (delta <= 0 && job.pages > 0) {
+        const stillWaitingForPrinter = seenProcessing
+          ? idleAfterProcessingMs === null ||
+            idleAfterProcessingMs < SNMP_POST_PROCESSING_SETTLE_MS
+          : timeSinceSpoolMs < SNMP_COLD_WAKE_GRACE_MS;
+
+        if (stillWaitingForPrinter) {
+          console.log(
+            `[Monitor] Job ${job.id} SNMP delta is still 0; deferring failure verdict while printer wakes/finishes printing...`,
+          );
+          return {
+            verified: false,
+            failed: false,
+            pending: true,
+            actualPages: job.pages,
+          };
+        }
+
         return {
           verified: true,
           failed: true,
